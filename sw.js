@@ -1,5 +1,5 @@
 // Offline support: the app keeps working without internet.
-const CACHE = "daily-exercises-v3";
+const CACHE = "daily-exercises-v4";
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -19,7 +19,7 @@ self.addEventListener("fetch", (e) => {
   if (url.origin === self.location.origin) {
     if (req.mode === "navigate") {
       // newest app when online, saved app when offline
-      e.respondWith(fetch(req)
+      e.respondWith(fetch(new Request(req.url, { cache: "no-cache", credentials: "same-origin" }))
         .then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put("index.html", copy)); return res; })
         .catch(() => caches.match("index.html")));
       return;

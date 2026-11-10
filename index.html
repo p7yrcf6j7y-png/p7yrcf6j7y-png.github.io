@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Daily Exercises</title>
 <meta name="theme-color" content="#17213a">
+<meta name="app-version" content="2026-11-10b">
 <meta name="apple-mobile-web-app-title" content="Exercises">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -175,6 +176,11 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 .filebtn { position: relative; overflow: hidden; }
 .filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .servers { font-size: 13px; color: var(--ink-2); line-height: 1.7; margin: 0; }
+.album-slot { display: grid; gap: 8px; }
+.album-slot:empty { display: none; }
+.vlist { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.vlist li { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; }
+.vlist .vday { color: var(--ink-2); white-space: nowrap; }
 .servers b { color: var(--good); }
 .pair-ok { color: var(--good); font-weight: 700; margin: 0; }
 [hidden] { display: none !important; }
@@ -238,8 +244,9 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 
     <div class="card">
       <h2>Video</h2>
-      <p class="hint">Did you film an exercise today? Tap which one. 30–60 seconds, 1–2 times a week, is enough. Send the video with WhatsApp too.</p>
+      <p class="hint">Film one exercise for 30–60 seconds, 1–2 times a week. Add the video to the shared album, then tap which exercise you filmed.</p>
       <div class="chips" id="videos"></div>
+      <div class="album-slot" id="album-today"></div>
     </div>
 
     <div class="card">
@@ -273,7 +280,11 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       <div class="tile"><div class="big" id="sum-days">0 of 7</div><div class="small">days with exercises</div></div>
       <div class="tile"><div class="big" id="sum-goals">0 of 6</div><div class="small">goals reached this week</div></div>
     </div>
-    <p class="hint" id="sum-videos" style="padding:0 4px">Videos this week: 0</p>
+    <div class="card">
+      <h2>Videos this week</h2>
+      <div id="video-week"></div>
+      <div class="album-slot" id="album-week"></div>
+    </div>
     <div class="card">
       <h2>Week by week</h2>
       <p class="hint">Blue bars show the average of each week. The dashed line is the goal for that month.</p>
@@ -327,7 +338,8 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         <li>Film one exercise for 30–60 seconds, 1–2 times a week, so the doctor can see the progress.</li>
         <li>Over two weeks, try to film each of the six exercises once.</li>
         <li>Hold the phone still and film from the side, so her hands, feet and eyes can be seen.</li>
-        <li>Tap the exercise under <b>Video</b> on that day, and send the video with WhatsApp.</li>
+        <li>Add every video to the shared album. iPhone: Photos → open the video → Share → <b>Add to Shared Album</b>. Android: Google Photos → open the video → Share → <b>Add to album</b>.</li>
+        <li>Then tap the exercise under <b>Video</b> on that day, so both phones know what was filmed.</li>
       </ul>
     </div>
     <div class="card">
@@ -354,6 +366,9 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       <div class="field"><label class="lbl" for="set-wa">Send results to (WhatsApp number, optional)</label>
         <input id="set-wa" inputmode="tel" autocomplete="off" placeholder="e.g. 49 176 1234567"></div>
       <p class="hint" id="set-wa-hint">With country code (49 for Germany), no + or 0 at the start. Empty: WhatsApp asks who should get the message.</p>
+      <div class="field"><label class="lbl" for="set-album">Shared video album (link)</label>
+        <input id="set-album" type="url" inputmode="url" autocomplete="off" placeholder="https://…"></div>
+      <p class="hint" id="set-album-hint">Paste the link of your shared album (iCloud or Google Photos). The other phone gets it automatically.</p>
       <button class="btn" id="set-save">Save settings</button>
     </div>
     <div class="card">
@@ -866,7 +881,20 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     return true;
   }
 
-  // one encrypted package per month, plus one for name, birthday and first times
+  function cleanAlbum(u) {
+    u = String(u || "").trim();
+    return /^https:\/\/[^\s"'<>]{4,400}$/.test(u) ? u : "";
+  }
+  function mergeAlbum(url, u) {
+    u = Number(u) || 0;
+    if (u <= (state.settings.au || 0)) return false;
+    state.settings.album = cleanAlbum(url);
+    state.settings.au = u;
+    fillSettings();
+    return true;
+  }
+
+  // one encrypted package per half month, plus one for name, birthday, album link and first times
   function buildChunks() {
     const chunks = {};
     Object.keys(state.entries).sort().forEach((d) => {
@@ -878,7 +906,8 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     });
     const m = {};
     Object.keys(state.milestones).sort().forEach((id) => { const x = msOf(id); if (x.u) m[id] = [x.d, x.u]; });
-    chunks.meta = { v: 1, c: "meta", s: [state.settings.name || "", state.settings.born || "", state.settings.su || 0], m };
+    chunks.meta = { v: 1, c: "meta", s: [state.settings.name || "", state.settings.born || "", state.settings.su || 0,
+      state.settings.album || "", state.settings.au || 0], m };
     return chunks;
   }
 
@@ -929,6 +958,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     let changed = false;
     if (m[2] === "meta") {
       if (Array.isArray(p.s) && mergeSettings(p.s[0], p.s[1], p.s[2])) changed = true;
+      if (Array.isArray(p.s) && mergeAlbum(p.s[3], p.s[4])) changed = true;
       if (p.m && typeof p.m === "object") Object.keys(p.m).forEach((id) => { const x = p.m[id]; if (Array.isArray(x) && mergeMilestone(id, x[0], x[1])) changed = true; });
     } else if (p.d && typeof p.d === "object") {
       Object.keys(p.d).forEach((d) => { const x = p.d[d]; if (x && Array.isArray(x.v) && Array.isArray(x.t) && mergeDay(d, x.v, x.t)) changed = true; });
@@ -1258,6 +1288,16 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       '<button class="chip wide" id="vid-' + x.key + '" data-act="video" data-key="' + x.key + '" aria-pressed="' + vids.includes(x.key) + '">' + (i + 1) + " " + esc(x.short) + "</button>").join("");
   }
 
+  function albumButton() {
+    return state.settings.album
+      ? '<a class="btn primary" href="' + esc(state.settings.album) + '" target="_blank" rel="noopener">Open video album</a>'
+      : '<button class="clear" data-act="album-setup">Add the link of the shared video album</button>';
+  }
+  function renderAlbum() {
+    el("album-today").innerHTML = albumButton();
+    el("album-week").innerHTML = albumButton();
+  }
+
   function renderTags() {
     const e = entryFor(state.date);
     el("tags").innerHTML = TAGS.map((t, i) =>
@@ -1309,8 +1349,11 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     const s = weekStats(w);
     el("sum-days").textContent = s.daysDone + " of 7";
     el("sum-goals").textContent = s.goalsReached + " of 6";
-    const vids = s.days.map((d) => (state.entries[d] && state.entries[d].videos) || []).reduce((a, v) => a + v.length, 0);
-    el("sum-videos").textContent = "Videos this week: " + vids;
+    const filmed = s.days.map((d) => ({ d, v: (state.entries[d] && state.entries[d].videos) || [] })).filter((x) => x.v.length);
+    el("video-week").innerHTML = filmed.length
+      ? '<ul class="vlist">' + filmed.map((x) => '<li><span class="vday">' + esc(fromIso(x.d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })) +
+          "</span><span>" + esc(videoNames(x.v)) + "</span></li>").join("") + "</ul>"
+      : '<p class="hint">No videos noted this week yet.</p>';
     el("progress-rows").innerHTML = s.per.map((p, i) => {
       const pill = p.reached ? '<span class="pill good">✓ Goal reached</span>' : '<span class="pill">Goal ' + esc(goalText(p.x, p.goal)) + "</span>";
       const val = p.avg === null ? "no entries" : "average " + fmtAvg(p.avg) + (p.x.type === "level" ? " of 3" : (p.x.type === "scale" ? " of 5" : ""));
@@ -1343,6 +1386,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   function render() {
     renderTabs();
     renderPair();
+    renderAlbum();
     renderChild();
     renderCalendar();
     renderExercises();
@@ -1376,6 +1420,11 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         state.settings.name = nn;
         state.settings.born = nb;
         state.settings.wa = el("set-wa").value.trim().slice(0, 24);
+        const rawAlbum = el("set-album").value.trim(), na = cleanAlbum(rawAlbum);
+        if (na !== (state.settings.album || "")) { state.settings.album = na; state.settings.au = bump(state.settings.au); }
+        el("set-album-hint").textContent = rawAlbum && !na
+          ? "This does not look like a link. It must start with https://"
+          : (na ? "Saved. The other phone gets the album link automatically." : "Paste the link of your shared album (iCloud or Google Photos). The other phone gets it automatically.");
         saveLocal(); syncChanged(); render();
         t.textContent = "Saved ✓"; setTimeout(() => { t.textContent = "Save settings"; }, 1600);
         el("set-wa-hint").textContent = state.settings.wa && !waNumber() ? "Please add the country code, e.g. 49 for Germany." : (waNumber() ? "Results go straight to this number." : "Empty: WhatsApp asks who should get the message.");
@@ -1391,6 +1440,12 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         return; }
     }
     const act = t.dataset.act, key = t.dataset.key;
+    if (act === "album-setup") {
+      state.tab = "guide"; renderTabs();
+      el("set-album").scrollIntoView({ block: "center" });
+      setTimeout(() => el("set-album").focus(), 300);
+      return;
+    }
     if (act && act.indexOf("pair-") === 0) {
       if (act === "pair-start") startNewRoom();
       else if (act === "pair-have") { state.tab = "today"; renderTabs(); openImport(); el("import-card").scrollIntoView({ block: "center" }); }
@@ -1431,6 +1486,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") { hiddenAt = Date.now(); return; }
     if (pool) { if (hiddenAt && Date.now() - hiddenAt > 15000) pool.refresh(); else pool.wake(); }
+    if (hiddenAt && Date.now() - hiddenAt > 60000) checkForUpdate();
     hiddenAt = 0;
     const now = todayIso();
     if (now !== lastToday) { if (state.date === lastToday) state.date = now; lastToday = now; render(); }
@@ -1515,10 +1571,12 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     el("set-name").value = state.settings.name || "";
     el("set-born").value = state.settings.born || "";
     el("set-wa").value = state.settings.wa || "";
+    el("set-album").value = state.settings.album || "";
   }
   function backupJson() {
     return JSON.stringify({ app: "daily-exercises", version: 1, saved: new Date().toISOString(),
-      settings: { name: state.settings.name, born: state.settings.born, su: state.settings.su || 0 }, entries: state.entries, milestones: state.milestones }, null, 1);
+      settings: { name: state.settings.name, born: state.settings.born, su: state.settings.su || 0, album: state.settings.album || "", au: state.settings.au || 0 },
+      entries: state.entries, milestones: state.milestones }, null, 1);
   }
   function saveBackup() {
     const text = backupJson();
@@ -1547,6 +1605,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         const mo = o.milestones || {};
         Object.keys(mo).forEach((id) => { const x = mo[id]; if (typeof x === "string") mergeMilestone(id, x, 1); else if (x && typeof x === "object") mergeMilestone(id, x.d, x.u); });
         if (o.settings && o.settings.name) mergeSettings(o.settings.name, o.settings.born || "", o.settings.su || 1);
+        if (o.settings && o.settings.album) mergeAlbum(o.settings.album, o.settings.au || 1);
         saveLocal(); syncChanged(); fillSettings(); render();
         el("backup-msg").textContent = "Backup loaded: " + n + " days.";
       } catch (e) { el("backup-msg").textContent = "This file is not a backup from this app."; }
@@ -1589,6 +1648,27 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       if (n && !state.settings.name) { state.settings.name = n.slice(0, 40); if (/^\d{4}-\d{2}-\d{2}$/.test(b)) state.settings.born = b; state.settings.su = bump(state.settings.su); saveLocal(); }
     } catch (e) { /* ignore */ }
   }
+
+  // ---------- updates: load the new version when one is online ----------
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || "";
+  async function checkForUpdate() {
+    if (!APP_VERSION || APP_VERSION.indexOf("__") === 0) return false;
+    if (location.protocol !== "https:" && !localStorage.getItem("dx-relays-override")) return false;
+    try {
+      const res = await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) return false;
+      const m = /<meta name="app-version" content="([^"]+)"/.exec(await res.text());
+      if (!m || m[1] === APP_VERSION) return false;
+      let tried = "";
+      try { tried = sessionStorage.getItem("dx-reloaded-for") || ""; } catch (e) { /* ignore */ }
+      if (tried === m[1]) return false;            // reloaded once already: do not loop
+      try { sessionStorage.setItem("dx-reloaded-for", m[1]); } catch (e) { return false; }
+      clearTimeout(noteTimer); saveLocal();
+      location.reload();
+      return true;
+    } catch (e) { return false; }
+  }
+  window.dxCheckForUpdate = checkForUpdate;
 
   // ---------- start ----------
   function start(saved) {
