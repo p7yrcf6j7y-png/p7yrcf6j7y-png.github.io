@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Exercises</title>
+<meta name="theme-color" content="#17213a">
+<meta name="apple-mobile-web-app-title" content="Exercises">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a tear-off calendar page on top (today's date is the hero),
+   then six big tap rows, one per exercise, and a share bar at the end. */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --ink: #17213a;
+  --ink-2: #5a6377;
+  --line: #dbe1ea;
+  --accent: #2a63d4;
+  --accent-soft: #e4ecfb;
+  --sun: #f2c443;
+  --good: #1d8549;
+  --good-soft: #e1f3e8;
+  --font-display: "Bricolage Grotesque", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", Roboto, Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f131b; --surface: #171d28; --ink: #edf1f8; --ink-2: #a7b0c2; --line: #2a3344;
+    --accent: #7aa2ff; --accent-soft: #1d2a45; --sun: #d9ad33; --good: #57c98a; --good-soft: #163325;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f131b; --surface: #171d28; --ink: #edf1f8; --ink-2: #a7b0c2; --line: #2a3344;
+  --accent: #7aa2ff; --accent-soft: #1d2a45; --sun: #d9ad33; --good: #57c98a; --good-soft: #163325;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 560px; margin: 0 auto; padding: 14px 16px 40px; display: grid; gap: 14px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
+
+/* tabs */
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 14px; padding: 4px; position: sticky; top: 8px; z-index: 5; }
+.tab { border: 0; background: transparent; padding: 10px 6px; border-radius: 10px; font-weight: 700;
+  color: var(--ink-2); cursor: pointer; min-height: 44px; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--surface); }
+
+/* calendar page */
+.calendar { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.calendar .band { background: var(--sun); height: 14px; position: relative; }
+.calendar .band::before, .calendar .band::after { content: ""; position: absolute; top: 4px; width: 10px; height: 10px;
+  border-radius: 50%; background: var(--bg); }
+.calendar .band::before { left: 30%; } .calendar .band::after { right: 30%; }
+.cal-body { display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; padding: 10px 8px 14px; }
+.cal-center { text-align: center; display: grid; gap: 2px; }
+.cal-weekday { font-family: var(--font-display); font-weight: 600; font-size: 20px; color: var(--ink-2); }
+.cal-day { font-family: var(--font-display); font-weight: 800; font-size: 64px; line-height: 1; letter-spacing: -1px; }
+.cal-month { font-family: var(--font-display); font-weight: 600; font-size: 20px; }
+.cal-meta { font-size: 14px; color: var(--ink-2); margin-top: 4px; }
+.nav-btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface);
+  font-size: 22px; cursor: pointer; display: grid; place-items: center; }
+.nav-btn:disabled { opacity: .3; cursor: default; }
+.today-link { justify-self: center; border: 0; background: var(--accent-soft); color: var(--accent); font-weight: 700;
+  padding: 6px 14px; border-radius: 999px; cursor: pointer; margin-top: 6px; }
+
+.status { font-size: 14px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; padding: 0 4px; }
+.status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-2); flex: none; }
+.status.ok .dot { background: var(--good); }
+.status.warn .dot { background: var(--sun); }
+
+/* exercise rows */
+.ex { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: grid; gap: 10px; }
+.ex.done { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.ex-head { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; }
+.num { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-soft); color: var(--accent);
+  font-family: var(--font-display); font-weight: 800; font-size: 20px; display: grid; place-items: center; }
+.ex.done .num { background: var(--accent); color: var(--surface); }
+.ex-title { font-size: 19px; font-weight: 700; font-family: var(--font-body); }
+.ex-q { font-size: 15px; color: var(--ink-2); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-width: 48px; min-height: 48px; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--line);
+  background: var(--surface); font-weight: 700; font-size: 18px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.chip.wide { font-size: 16px; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper .chip { font-size: 24px; width: 56px; }
+.count { min-width: 64px; text-align: center; font-family: var(--font-display); font-weight: 800; font-size: 34px;
+  font-variant-numeric: tabular-nums; }
+.count.empty { color: var(--ink-2); font-size: 18px; font-family: var(--font-body); font-weight: 700; }
+.clear { border: 0; background: none; color: var(--ink-2); text-decoration: underline; cursor: pointer; padding: 8px; }
+details.how { font-size: 15px; color: var(--ink-2); }
+details.how summary { cursor: pointer; color: var(--accent); font-weight: 700; list-style: none; }
+details.how summary::-webkit-details-marker { display: none; }
+details.how p { margin: 6px 0 0; }
+.safe { color: var(--ink); font-weight: 700; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: grid; gap: 10px; }
+.card h2 { font-size: 21px; }
+.card h3 { font-size: 18px; }
+textarea { width: 100%; min-height: 84px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--bg);
+  color: var(--ink); font: inherit; padding: 10px 12px; resize: vertical; }
+label.lbl { font-weight: 700; font-size: 15px; }
+
+.share { display: grid; gap: 8px; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; border-radius: 14px;
+  font-weight: 700; font-size: 17px; text-decoration: none; cursor: pointer; border: 1.5px solid var(--line);
+  background: var(--surface); color: var(--ink); }
+.btn.primary { background: var(--good); border-color: var(--good); color: #ffffff; }
+.hint { font-size: 14px; color: var(--ink-2); margin: 0; }
+.fallback textarea { min-height: 160px; font-size: 14px; }
+
+/* progress */
+.sumrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+.tile .big { font-family: var(--font-display); font-weight: 800; font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tile .small { font-size: 14px; color: var(--ink-2); }
+.weekpick { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.weekpick .label { font-weight: 700; text-align: center; flex: 1; }
+.prow { display: grid; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); }
+.prow:first-of-type { border-top: 0; }
+.prow-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.prow-name { font-weight: 700; }
+.prow-val { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 15px; overflow-wrap: anywhere; }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; border-radius: 999px;
+  padding: 2px 9px; background: var(--bg); color: var(--ink-2); border: 1px solid var(--line); }
+.pill.good { background: var(--good-soft); color: var(--good); border-color: transparent; }
+svg.spark { width: 100%; height: auto; display: block; }
+svg.spark text { font-family: var(--font-body); }
+.ms { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.ms:first-of-type { border-top: 0; }
+.ms .when { font-size: 14px; color: var(--good); font-weight: 700; }
+.ms .mark { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface);
+  font-weight: 700; cursor: pointer; }
+.ms .mark.on { background: var(--good-soft); color: var(--good); border-color: transparent; }
+
+/* guide */
+.guide-ex { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); }
+.guide-ex:first-of-type { border-top: 0; }
+table.goals { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+table.goals th, table.goals td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: center; }
+table.goals th:first-child, table.goals td:first-child { text-align: left; }
+.tablewrap { overflow-x: auto; }
+ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+.child { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 0 4px; }
+.child-name { font-family: var(--font-display); font-weight: 800; font-size: 22px; }
+.child-age { font-size: 14px; color: var(--ink-2); }
+.field { display: grid; gap: 6px; }
+.field input { min-height: 48px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink);
+  font: inherit; padding: 8px 12px; width: 100%; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tip { background: var(--accent-soft); color: var(--ink); border-radius: 14px; padding: 10px 12px; font-size: 15px;
+  display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; }
+.tip button { border: 0; background: none; color: var(--accent); font-weight: 700; cursor: pointer; padding: 4px 6px; }
+.filebtn { position: relative; overflow: hidden; }
+.filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.servers { font-size: 13px; color: var(--ink-2); line-height: 1.7; margin: 0; }
+.servers b { color: var(--good); }
+.pair-ok { color: var(--good); font-weight: 700; margin: 0; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .chip, .tab { transition: background-color .12s ease, color .12s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" id="tab-today" role="tab" aria-selected="true" data-tab="today">Today</button>
+    <button class="tab" id="tab-progress" role="tab" aria-selected="false" data-tab="progress">Progress</button>
+    <button class="tab" id="tab-guide" role="tab" aria-selected="false" data-tab="guide">How to</button>
+  </div>
+
+  <section id="view-today" role="tabpanel" aria-labelledby="tab-today" class="wrap" style="padding:0">
+    <div class="card" id="setup-card" hidden>
+      <h2>Who are the exercises for?</h2>
+      <p class="hint">Enter this once. It stays on this phone.</p>
+      <div class="row2">
+        <div class="field"><label class="lbl" for="setup-name">Child’s name</label><input id="setup-name" autocomplete="off" placeholder="Name"></div>
+        <div class="field"><label class="lbl" for="setup-born">Birthday</label><input id="setup-born" type="date"></div>
+      </div>
+      <button class="btn primary" id="setup-save">Save</button>
+    </div>
+    <div class="tip" id="install-tip" hidden>
+      <span>Tip: add this app to your Home Screen. iPhone: Safari → Share → <b>Add to Home Screen</b>. Android: Chrome → ⋮ → <b>Add to Home screen</b>.</span>
+      <button id="install-tip-close" aria-label="Hide tip">OK</button>
+    </div>
+    <div class="child" id="child-line" hidden><span class="child-name" id="child-name"></span><span class="child-age" id="child-age"></span></div>
+    <div class="calendar">
+      <div class="band" aria-hidden="true"></div>
+      <div class="cal-body">
+        <button class="nav-btn" id="prev-day" aria-label="Previous day">‹</button>
+        <div class="cal-center">
+          <div class="cal-weekday" id="cal-weekday">Tuesday</div>
+          <div class="cal-day" id="cal-day">10</div>
+          <div class="cal-month" id="cal-month">November 2026</div>
+          <div class="cal-meta" id="cal-meta">Day 1 of 83 · Week 1</div>
+          <button class="today-link" id="go-today" hidden>Back to today</button>
+        </div>
+        <button class="nav-btn" id="next-day" aria-label="Next day">›</button>
+      </div>
+    </div>
+    <div class="status" id="save-status" role="status"><span class="dot"></span><span id="save-text">Tap an answer. It saves by itself.</span></div>
+    <div class="card" id="pair-today" hidden></div>
+    <div class="card" id="import-card">
+      <button class="btn" id="import-open">＋ Paste a WhatsApp message</button>
+      <div id="import-panel" hidden>
+        <p class="hint">In WhatsApp, press and hold the message, tap <b>Copy</b>. Then press and hold the box below and tap <b>Paste</b>.</p>
+        <textarea id="import-text" placeholder="Paste the whole message here"></textarea>
+        <div class="row2">
+          <button class="btn primary" id="import-save">Add</button>
+          <button class="btn" id="import-cancel">Cancel</button>
+        </div>
+      </div>
+      <p class="hint" id="import-msg" role="status" hidden></p>
+    </div>
+    <div id="ex-list" class="wrap" style="padding:0"></div>
+
+    <div class="card">
+      <h2>Video</h2>
+      <p class="hint">Did you film an exercise today? Tap which one. 30–60 seconds, 1–2 times a week, is enough. Send the video with WhatsApp too.</p>
+      <div class="chips" id="videos"></div>
+    </div>
+
+    <div class="card">
+      <h2>What did you notice?</h2>
+      <div class="chips" id="tags"></div>
+      <label class="lbl" for="note">Notes (sounds, words, mood)</label>
+      <textarea id="note" maxlength="500" placeholder="For example: looked at me twice, said “gone”"></textarea>
+    </div>
+
+    <div class="card share">
+      <h2>Send today</h2>
+      <a class="btn primary" id="wa-day" href="https://wa.me/" target="_blank" rel="noopener">Send with WhatsApp</a>
+      <button class="btn" id="copy-day">Copy text</button>
+      <p class="hint" id="share-hint">WhatsApp opens with today’s results written out. Choose who gets it.</p>
+      <div class="fallback" id="fallback-day" hidden>
+        <p class="hint">Copying is blocked here. Press and hold the text, choose Select all, then Copy.</p>
+        <textarea id="fallback-day-text" readonly></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-progress" role="tabpanel" aria-labelledby="tab-progress" class="wrap" style="padding:0" hidden>
+    <div class="card">
+      <div class="weekpick">
+        <button class="nav-btn" id="prev-week" aria-label="Previous week">‹</button>
+        <div class="label" id="week-label">Week 1 · 10–16 Nov</div>
+        <button class="nav-btn" id="next-week" aria-label="Next week">›</button>
+      </div>
+    </div>
+    <div class="sumrow">
+      <div class="tile"><div class="big" id="sum-days">0 of 7</div><div class="small">days with exercises</div></div>
+      <div class="tile"><div class="big" id="sum-goals">0 of 6</div><div class="small">goals reached this week</div></div>
+    </div>
+    <p class="hint" id="sum-videos" style="padding:0 4px">Videos this week: 0</p>
+    <div class="card">
+      <h2>Week by week</h2>
+      <p class="hint">Blue bars show the average of each week. The dashed line is the goal for that month.</p>
+      <div id="progress-rows"></div>
+    </div>
+    <div class="card">
+      <h2>First times</h2>
+      <p class="hint">Tap the day she does it for the first time.</p>
+      <div id="milestones"></div>
+    </div>
+    <div class="card share">
+      <h2>Send this week</h2>
+      <a class="btn primary" id="wa-week" href="https://wa.me/" target="_blank" rel="noopener">Send week with WhatsApp</a>
+      <button class="btn" id="copy-week">Copy week text</button>
+      <div class="fallback" id="fallback-week" hidden>
+        <p class="hint">Copying is blocked here. Press and hold the text, choose Select all, then Copy.</p>
+        <textarea id="fallback-week-text" readonly></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-guide" role="tabpanel" aria-labelledby="tab-guide" class="wrap" style="padding:0" hidden>
+    <div class="card">
+      <h2>How it works</h2>
+      <ul class="tips">
+        <li>Program: 10 November 2026 to 31 January 2027.</li>
+        <li>Add the app to your Home Screen first. iPhone: Safari → Share → <b>Add to Home Screen</b>. Android: Chrome → ⋮ → <b>Add to Home screen</b>. Then always open it from there.</li>
+        <li>Do the six exercises once a day, 1–2 minutes each, at the same time and place.</li>
+        <li>Open the app and tap the answers for today. It saves by itself.</li>
+        <li>Two phones: once both phones are connected, entries appear on both phones by themselves. See <b>Two phones</b> below.</li>
+        <li>No answer for an exercise means you did not do it that day. Tap <b>0</b> if you tried and she did not manage.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>The six exercises</h2>
+      <div id="guide-list"></div>
+    </div>
+    <div class="card">
+      <h2>Keep it playful</h2>
+      <ul class="tips">
+        <li>Sit opposite her. Show it first, then let her copy you.</li>
+        <li>Hold back the next piece until she looks at you, then give it at once.</li>
+        <li>Say one word for each action: “gone!”, “in!”, “kick!”, “hop!”, “thank you!”.</li>
+        <li>Guiding her hand gently is fine. If she screams or panics, stop and try again later.</li>
+        <li>First one short exercise, then her favourite game.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Videos</h2>
+      <ul class="tips">
+        <li>Film one exercise for 30–60 seconds, 1–2 times a week, so the doctor can see the progress.</li>
+        <li>Over two weeks, try to film each of the six exercises once.</li>
+        <li>Hold the phone still and film from the side, so her hands, feet and eyes can be seen.</li>
+        <li>Tap the exercise under <b>Video</b> on that day, and send the video with WhatsApp.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Safety</h2>
+      <ul class="tips">
+        <li><b>Sunflower seeds:</b> stay right next to her the whole time. No marbles.</li>
+        <li><b>No real candle.</b> Use a torch or an LED candle.</li>
+        <li><b>Boards flat on the floor.</b> Never chairs or anything high.</li>
+        <li>Use a plastic bottle for the tray, never glass.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Goals by the end of each month</h2>
+      <p class="hint">Starting goals. They will be adjusted with the doctor.</p>
+      <div class="tablewrap"><table class="goals" id="goals-table"></table></div>
+    </div>
+    <div class="card" id="pair-settings"></div>
+    <div class="card" id="settings">
+      <h2>Settings</h2>
+      <div class="row2">
+        <div class="field"><label class="lbl" for="set-name">Child’s name</label><input id="set-name" autocomplete="off"></div>
+        <div class="field"><label class="lbl" for="set-born">Birthday</label><input id="set-born" type="date"></div>
+      </div>
+      <div class="field"><label class="lbl" for="set-wa">Send results to (WhatsApp number, optional)</label>
+        <input id="set-wa" inputmode="tel" autocomplete="off" placeholder="e.g. 49 176 1234567"></div>
+      <p class="hint" id="set-wa-hint">With country code (49 for Germany), no + or 0 at the start. Empty: WhatsApp asks who should get the message.</p>
+      <button class="btn" id="set-save">Save settings</button>
+    </div>
+    <div class="card">
+      <h2>Backup</h2>
+      <p class="hint">All entries are saved on this phone. Make a backup file now and then, and keep it or send it on. It also moves the entries to a new phone.</p>
+      <button class="btn" id="backup-save">Save backup file</button>
+      <label class="btn filebtn" for="backup-load">Load backup file<input id="backup-load" type="file" accept=".json,application/json"></label>
+      <p class="hint" id="backup-msg" role="status"></p>
+      <div class="fallback" id="fallback-backup" hidden>
+        <p class="hint">Saving a file is blocked here. Press and hold the text, choose Select all, then Copy, and paste it into a note.</p>
+        <textarea id="fallback-backup-text" readonly></textarea>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* dxsync.js: encrypted sync between phones over public Nostr relays.
+   - Everything is encrypted on the phone (AES-GCM). Relays only see ciphertext.
+   - The room secret travels only in the invite link (#join=...), never to a server.
+   - Includes a small BIP-340 Schnorr signer for secp256k1 (Nostr signatures). */
+(function (root) {
+  "use strict";
+
+  // ---------- bytes ----------
+  const enc = new TextEncoder(), dec = new TextDecoder();
+  const utf8 = (s) => enc.encode(s);
+  const utf8d = (b) => dec.decode(b);
+  function concat() {
+    let len = 0; for (const a of arguments) len += a.length;
+    const out = new Uint8Array(len); let o = 0;
+    for (const a of arguments) { out.set(a, o); o += a.length; }
+    return out;
+  }
+  const hex = (b) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  function unhex(h) {
+    if (h.length % 2) throw new Error("bad hex");
+    const out = new Uint8Array(h.length / 2);
+    for (let i = 0; i < out.length; i++) out[i] = parseInt(h.substr(i * 2, 2), 16);
+    return out;
+  }
+  function b64(bytes) { let s = ""; for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s); }
+  function unb64(s) { const bin = atob(s); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+  const b64u = (bytes) => b64(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  function unb64u(s) { let t = s.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; return unb64(t); }
+  const randomBytes = (n) => crypto.getRandomValues(new Uint8Array(n));
+  const sha256 = async (b) => new Uint8Array(await crypto.subtle.digest("SHA-256", b));
+
+  // ---------- secp256k1 ----------
+  const P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2Fn;
+  const N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+  const G = [0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n,
+             0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8n, 1n];
+  const INF = [0n, 1n, 0n];
+  const mod = (a, m) => { const r = a % m; return r >= 0n ? r : r + m; };
+  const mp = (a) => mod(a, P);
+  function inv(a, m) {
+    let r0 = mod(a, m), r1 = m, s0 = 1n, s1 = 0n;
+    while (r1 !== 0n) { const q = r0 / r1; [r0, r1] = [r1, r0 - q * r1]; [s0, s1] = [s1, s0 - q * s1]; }
+    if (r0 !== 1n) throw new Error("not invertible");
+    return mod(s0, m);
+  }
+  function powmod(b, e, m) { let r = 1n; b = mod(b, m); while (e > 0n) { if (e & 1n) r = mod(r * b, m); b = mod(b * b, m); e >>= 1n; } return r; }
+  function dbl(p) {                               // Jacobian doubling, a = 0
+    const [X1, Y1, Z1] = p;
+    if (Z1 === 0n || Y1 === 0n) return INF;
+    const A = mp(X1 * X1), B = mp(Y1 * Y1), C = mp(B * B);
+    const D = mp(2n * (mp((X1 + B) * (X1 + B)) - A - C));
+    const E = mp(3n * A), F = mp(E * E);
+    const X3 = mp(F - 2n * D);
+    return [X3, mp(E * (D - X3) - 8n * C), mp(2n * Y1 * Z1)];
+  }
+  function add(p, q) {                            // Jacobian addition
+    const [X1, Y1, Z1] = p, [X2, Y2, Z2] = q;
+    if (Z1 === 0n) return q; if (Z2 === 0n) return p;
+    const Z1Z1 = mp(Z1 * Z1), Z2Z2 = mp(Z2 * Z2);
+    const U1 = mp(X1 * Z2Z2), U2 = mp(X2 * Z1Z1);
+    const S1 = mp(Y1 * Z2 * Z2Z2), S2 = mp(Y2 * Z1 * Z1Z1);
+    if (U1 === U2) return S1 === S2 ? dbl(p) : INF;
+    const H = mp(U2 - U1), I = mp(4n * H * H), J = mp(H * I);
+    const r = mp(2n * (S2 - S1)), V = mp(U1 * I);
+    const X3 = mp(r * r - J - 2n * V);
+    const Y3 = mp(r * (V - X3) - 2n * S1 * J);
+    const Z3 = mp((mp((Z1 + Z2) * (Z1 + Z2)) - Z1Z1 - Z2Z2) * H);
+    return [X3, Y3, Z3];
+  }
+  function mul(k, p) { let r = INF, q = p; while (k > 0n) { if (k & 1n) r = add(r, q); q = dbl(q); k >>= 1n; } return r; }
+  function affine(p) {
+    if (p[2] === 0n) return null;
+    const zi = inv(p[2], P), zi2 = mp(zi * zi);
+    return { x: mp(p[0] * zi2), y: mp(p[1] * zi2 * zi) };
+  }
+  function int(b) { let n = 0n; for (const x of b) n = (n << 8n) | BigInt(x); return n; }
+  function bytes32(n) { const out = new Uint8Array(32); for (let i = 31; i >= 0; i--) { out[i] = Number(n & 0xffn); n >>= 8n; } return out; }
+  function liftX(x) {
+    if (x >= P) return null;
+    const c = mp(x * x * x + 7n);
+    const y = powmod(c, (P + 1n) / 4n, P);
+    if (mp(y * y) !== c) return null;
+    return [x, (y & 1n) === 0n ? y : P - y, 1n];
+  }
+  async function taggedHash(tag) {
+    const th = await sha256(utf8(tag));
+    const parts = Array.prototype.slice.call(arguments, 1);
+    return sha256(concat(th, th, ...parts));
+  }
+
+  // ---------- BIP-340 Schnorr ----------
+  function getPublicKey(sk) {
+    const d = int(sk);
+    if (d <= 0n || d >= N) throw new Error("bad secret key");
+    return bytes32(affine(mul(d, G)).x);
+  }
+  async function schnorrSign(msg, sk, aux) {
+    const d0 = int(sk);
+    if (d0 <= 0n || d0 >= N) throw new Error("bad secret key");
+    const Pa = affine(mul(d0, G));
+    const d = (Pa.y & 1n) === 0n ? d0 : N - d0;
+    const px = bytes32(Pa.x);
+    const ah = await taggedHash("BIP0340/aux", aux);
+    const db = bytes32(d), t = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) t[i] = db[i] ^ ah[i];
+    const k0 = mod(int(await taggedHash("BIP0340/nonce", t, px, msg)), N);
+    if (k0 === 0n) throw new Error("bad nonce");
+    const R = affine(mul(k0, G));
+    const k = (R.y & 1n) === 0n ? k0 : N - k0;
+    const rx = bytes32(R.x);
+    const e = mod(int(await taggedHash("BIP0340/challenge", rx, px, msg)), N);
+    return concat(rx, bytes32(mod(k + e * d, N)));
+  }
+  async function schnorrVerify(msg, pk, sig) {
+    if (pk.length !== 32 || sig.length !== 64) return false;
+    const Pp = liftX(int(pk));
+    if (!Pp) return false;
+    const r = int(sig.slice(0, 32)), s = int(sig.slice(32));
+    if (r >= P || s >= N) return false;
+    const e = mod(int(await taggedHash("BIP0340/challenge", sig.slice(0, 32), pk, msg)), N);
+    const R = affine(add(mul(s, G), mul(mod(N - e, N), Pp)));
+    if (!R || (R.y & 1n) !== 0n || R.x !== r) return false;
+    return true;
+  }
+
+  // ---------- Nostr events ----------
+  async function eventId(ev) {
+    return hex(await sha256(utf8(JSON.stringify([0, ev.pubkey, ev.created_at, ev.kind, ev.tags, ev.content]))));
+  }
+  async function finalizeEvent(tmpl, sk, pkHex) {
+    const ev = { pubkey: pkHex, created_at: tmpl.created_at, kind: tmpl.kind, tags: tmpl.tags, content: tmpl.content };
+    ev.id = await eventId(ev);
+    ev.sig = hex(await schnorrSign(unhex(ev.id), sk, randomBytes(32)));
+    return ev;
+  }
+  async function verifyEvent(ev) {
+    try {
+      if ((await eventId(ev)) !== ev.id) return false;
+      return await schnorrVerify(unhex(ev.id), unhex(ev.pubkey), unhex(ev.sig));
+    } catch (e) { return false; }
+  }
+  const dTag = (ev) => { const t = (ev.tags || []).find((x) => Array.isArray(x) && x[0] === "d"); return t ? String(t[1] || "") : ""; };
+
+  // ---------- room: keys from the shared secret ----------
+  const newSecret = () => b64u(randomBytes(16));
+  const newDeviceId = () => b64u(randomBytes(8));
+  async function deriveRoom(secret) {
+    const raw = unb64u(secret);
+    if (raw.length < 16) throw new Error("bad secret");
+    const base = await crypto.subtle.importKey("raw", raw, "HKDF", false, ["deriveBits"]);
+    const salt = utf8("daily-exercises-v1");
+    const bits = async (info) => new Uint8Array(await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info: utf8(info) }, base, 256));
+    const skn = mod(int(await bits("nostr-key")), N - 1n) + 1n;
+    const sk = bytes32(skn);
+    const pkHex = hex(getPublicKey(sk));
+    const key = await crypto.subtle.importKey("raw", await bits("aes-key"), { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+    return { secret, sk, pkHex, key };
+  }
+  async function seal(key, obj, aad) {
+    const iv = randomBytes(12);
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: utf8(aad) }, key, utf8(JSON.stringify(obj))));
+    return "dx1:" + b64(iv) + ":" + b64(ct);
+  }
+  async function unseal(key, content, aad) {
+    const m = /^dx1:([A-Za-z0-9+/=]+):([A-Za-z0-9+/=]+)$/.exec(String(content || ""));
+    if (!m) return null;
+    try {
+      const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(m[1]), additionalData: utf8(aad) }, key, unb64(m[2]));
+      return JSON.parse(utf8d(new Uint8Array(pt)));
+    } catch (e) { return null; }
+  }
+
+  // ---------- relay pool ----------
+  const DELAYS = [2000, 6000, 15000, 40000, 90000, 180000];
+  class RelayPool {
+    constructor(opts) {
+      this.urls = opts.relays.slice();
+      this.filter = opts.filter;
+      this.onEvent = opts.onEvent || (() => {});
+      this.onChange = opts.onChange || (() => {});
+      this.WS = opts.WebSocket || root.WebSocket;
+      this.relays = {};
+      this.latest = {};              // d tag -> our newest event
+      this.active = false;
+      this.subId = "dx" + hex(randomBytes(4));
+    }
+    start() { this.active = true; this.urls.forEach((u) => this._open(u)); }
+    stop() {
+      this.active = false;
+      Object.values(this.relays).forEach((r) => {
+        clearTimeout(r.timer); clearTimeout(r.eoseTimer);
+        if (r.ws) { const ws = r.ws; r.ws = null; try { ws.close(); } catch (e) { /* ignore */ } }
+        r.open = false; r.eose = false;
+      });
+      this.onChange();
+    }
+    wake() {                         // page visible again or back online
+      if (!this.active) return;
+      Object.values(this.relays).forEach((r) => {
+        if (!r.ws) { clearTimeout(r.timer); r.tries = 0; this._open(r.url); }
+      });
+    }
+    refresh() {                      // after the phone slept: sockets may be dead without notice
+      if (!this.active) return;
+      Object.values(this.relays).forEach((r) => {
+        clearTimeout(r.timer); clearTimeout(r.eoseTimer);
+        const ws = r.ws; r.ws = null; r.open = false; r.eose = false; r.tries = 0;
+        if (ws) { try { ws.close(); } catch (e) { /* ignore */ } }
+        this._open(r.url);
+      });
+      this.onChange();
+    }
+    _open(url) {
+      const r = this.relays[url] || (this.relays[url] = { url, ws: null, open: false, eose: false, tries: 0, timer: null,
+        eoseTimer: null, has: new Set(), sent: new Set(), ok: new Set(), lastError: "" });
+      if (!this.active || r.ws) return;
+      let ws;
+      try { ws = new this.WS(url); } catch (e) { r.lastError = "cannot connect"; this._retry(r); return; }
+      r.ws = ws; r.open = false; r.eose = false; r.has = new Set(); r.sent = new Set(); r.ok = new Set(); r.lastError = "";
+      const guard = setTimeout(() => { if (r.ws === ws && !r.open) { try { ws.close(); } catch (e) { /* ignore */ } this._closed(r, ws); } }, 12000);
+      ws.onopen = () => {
+        clearTimeout(guard);
+        if (r.ws !== ws) return;
+        r.open = true; r.tries = 0;
+        this._send(r, ["REQ", this.subId, this.filter]);
+        r.eoseTimer = setTimeout(() => { if (r.ws === ws && !r.eose) { r.eose = true; this._flush(r); this.onChange(); } }, 9000);
+        this.onChange();
+      };
+      ws.onmessage = (m) => { if (r.ws === ws) this._msg(r, m.data); };
+      ws.onclose = () => { clearTimeout(guard); this._closed(r, ws); };
+      ws.onerror = () => { r.lastError = "connection error"; };
+    }
+    _closed(r, ws) {
+      if (r.ws !== ws) return;
+      clearTimeout(r.eoseTimer);
+      r.ws = null; r.open = false; r.eose = false;
+      this.onChange();
+      this._retry(r);
+    }
+    _retry(r) {
+      if (!this.active) return;
+      clearTimeout(r.timer);
+      const base = DELAYS[Math.min(r.tries, DELAYS.length - 1)];
+      r.tries++;
+      r.timer = setTimeout(() => this._open(r.url), base * (0.8 + Math.random() * 0.4));
+    }
+    _send(r, msg) {
+      try { if (r.ws && r.open) { r.ws.send(JSON.stringify(msg)); return true; } } catch (e) { /* ignore */ }
+      return false;
+    }
+    _msg(r, data) {
+      let m;
+      try { m = JSON.parse(data); } catch (e) { return; }
+      if (!Array.isArray(m)) return;
+      const type = m[0];
+      if (type === "EVENT" && m[1] === this.subId && m[2] && typeof m[2] === "object") {
+        r.has.add(m[2].id);
+        this.onEvent(m[2], r.url);
+      } else if (type === "EOSE" && m[1] === this.subId) {
+        clearTimeout(r.eoseTimer); r.eose = true; this._flush(r); this.onChange();
+      } else if (type === "OK") {
+        const msg = String(m[3] || "");
+        if (m[2] === true || /^duplicate/i.test(msg)) { r.ok.add(m[1]); r.lastError = ""; }
+        else r.lastError = msg || "rejected";
+        this.onChange();
+      } else if (type === "CLOSED" && m[1] === this.subId) {
+        r.lastError = String(m[2] || "closed"); clearTimeout(r.eoseTimer); r.eose = true; this.onChange();
+      } else if (type === "NOTICE") {
+        r.lastError = String(m[1] || "");
+      }
+    }
+    _flush(r) {
+      Object.values(this.latest).forEach((ev) => { if (!r.has.has(ev.id) && !r.sent.has(ev.id) && !r.ok.has(ev.id)) this._sendEvent(r, ev); });
+    }
+    _sendEvent(r, ev) { if (this._send(r, ["EVENT", ev])) r.sent.add(ev.id); }
+    remember(ev) { this.latest[dTag(ev)] = ev; }
+    publish(ev) {
+      this.remember(ev);
+      Object.values(this.relays).forEach((r) => { if (r.open && r.eose) this._sendEvent(r, ev); });
+    }
+    stores(url) {
+      const r = this.relays[url], mine = Object.values(this.latest);
+      return !!r && mine.length > 0 && mine.every((ev) => r.has.has(ev.id) || r.ok.has(ev.id));
+    }
+    status() {
+      const list = this.urls.map((u) => this.relays[u]).filter(Boolean);
+      const mine = Object.values(this.latest);
+      const storedOn = (r) => mine.length > 0 && mine.every((ev) => r.has.has(ev.id) || r.ok.has(ev.id));
+      return {
+        total: this.urls.length,
+        connected: list.filter((r) => r.open).length,
+        ready: list.filter((r) => r.open && r.eose).length,
+        stored: list.filter(storedOn).length,
+        mine: mine.length,
+        pending: mine.length > 0 && !list.some(storedOn)
+      };
+    }
+  }
+
+  const DX = { utf8, hex, unhex, b64u, unb64u, sha256, getPublicKey, schnorrSign, schnorrVerify, eventId, finalizeEvent,
+    verifyEvent, dTag, newSecret, newDeviceId, deriveRoom, seal, unseal, RelayPool };
+  root.DX = DX;
+  if (typeof module !== "undefined" && module.exports) module.exports = DX;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------- program ----------
+  const START = new Date(2026, 10, 10);   // Tue 10 Nov 2026
+  const END = new Date(2027, 0, 31);      // Sun 31 Jan 2027
+  const DAY_MS = 86400000;
+  const TOTAL_DAYS = 83;
+
+  const BOARD_LEVELS = ["both hands", "one hand", "one finger", "no help"];
+  const EXERCISES = [
+    { key: "lines", title: "Wipe the lines", q: "Lines she wiped away by herself (of 5)", type: "scale", max: 5,
+      how: "Draw 5 lines on the whiteboard, some across and some up and down. She wipes them away with her finger. Count the lines she wipes by herself.",
+      short: "Wipe lines", goals: [1, 3, 5] },
+    { key: "boards", title: "Walk on the boards", q: "How much help did she need?", type: "level", max: 3,
+      how: "Put 3 flat boards on the floor, 15 cm apart. Hold her hand and walk across them with her. Little by little, give less help.",
+      safe: "Boards flat on the floor. Never chairs.", short: "Boards", goals: [1, 2, 3] },
+    { key: "ball", title: "Kick the ball", q: "Balls she kicked (of 5)", type: "scale", max: 5,
+      how: "Put 5 balls in front of her, one after the other. Count the balls she kicks.",
+      short: "Kick ball", goals: [2, 3, 4] },
+    { key: "light", title: "Follow the light", q: "Movements she followed with her eyes (of 5)", type: "scale", max: 5,
+      how: "Make the room dark. Move a torch or an LED candle slowly 5 times, left to right and up and down, about 30–40 cm from her face. Count how often her eyes follow it.",
+      safe: "No real candle.", short: "Follow light", goals: [2, 3, 4] },
+    { key: "seeds", title: "Sunflower seeds", q: "Seeds she put into the cup through the small hole", type: "count",
+      how: "Make a small hole in a cup or in its lid. She puts sunflower seeds in through the hole, one by one. Count the seeds until she stops by herself.",
+      safe: "Stay right next to her the whole time.", short: "Seeds", goals: [3, 6, 10] },
+    { key: "tray", title: "Carry the tray", q: "Times she handed the bottle over without putting it down", type: "count",
+      how: "Put a half-full plastic bottle on a flat tray. She carries it to a person and hands it over. The person says “thank you” and looks happy.",
+      short: "Tray", goals: [1, 2, 3] }
+  ];
+  const TAGS = ["Looked at me", "Copied me", "Made a sound", "Said a word", "Joined in happily", "Did not want to"];
+  const MILESTONES = [
+    { id: "m1", text: "Stays with one exercise for 2 minutes" },
+    { id: "m2", text: "Does 3 exercises in a row" },
+    { id: "m3", text: "Looks at you before she gets the next piece" },
+    { id: "m4", text: "Copies a movement, like wiping or kicking" },
+    { id: "m5", text: "Gives the bottle to a person and looks at them" },
+    { id: "m6", text: "Copies a sound or a word, like “gone” or “hop”" },
+    { id: "m7", text: "Follows a request without pointing, like “Give me the bottle”" }
+  ];
+
+  // ---------- dates ----------
+  const pad = (n) => String(n).padStart(2, "0");
+  const iso = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const fromIso = (s) => { const p = s.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const diffDays = (a, b) => Math.round((fromIso(iso(a)) - fromIso(iso(b))) / DAY_MS);
+  const todayIso = () => iso(new Date());
+  const weekOf = (dIso) => Math.max(1, Math.floor(diffDays(fromIso(dIso), START) / 7) + 1);
+  const weekStart = (w) => addDays(START, 7 * (w - 1));
+  const weekEnd = (w) => addDays(START, 7 * (w - 1) + 6);
+  const goalIndex = (d) => { const m = d.getMonth(), y = d.getFullYear();
+    if (y < 2026 || (y === 2026 && m <= 10)) return 0; if (y === 2026 && m === 11) return 1; return 2; };
+  const fmtShort = (d) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const fmtLong = (d) => d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const weekLabel = (w) => { const s = weekStart(w), e = weekEnd(w);
+    const same = s.getMonth() === e.getMonth();
+    return "Week " + w + " · " + (same ? s.getDate() : fmtShort(s)) + "–" + fmtShort(e); };
+
+  // ---------- state ----------
+  const state = { entries: {}, milestones: {}, settings: { name: "", born: "", wa: "", tipHidden: false }, tab: "today", date: todayIso(), week: weekOf(todayIso()) };
+  let lastToday = todayIso();
+
+  const blankEntry = () => ({ lines: null, boards: null, ball: null, light: null, seeds: null, tray: null, videos: [], tags: [], note: "", updated: 0, ts: {} });
+  function upgrade(e) {   // older entries used "pipes" for exercise 5
+    const o = Object.assign(blankEntry(), e || {});
+    if ((o.seeds === null || o.seeds === undefined) && typeof o.pipes === "number") o.seeds = o.pipes;
+    delete o.pipes;
+    if (!Array.isArray(o.videos)) o.videos = [];
+    if (!Array.isArray(o.tags)) o.tags = [];
+    const ts = Object.assign({}, (e && e.ts) || {});
+    FIELDS.forEach((f) => {
+      if (ts[f]) return;
+      const v = o[f];
+      const has = Array.isArray(v) ? v.length > 0 : (typeof v === "string" ? v.length > 0 : v !== null && v !== undefined);
+      if (has) ts[f] = o.updated || 1;
+    });
+    o.ts = ts;
+    return o;
+  }
+  const entryFor = (d) => state.entries[d] || blankEntry();
+  const hasAny = (e) => !!e && EXERCISES.some((x) => e[x.key] !== null && e[x.key] !== undefined);
+
+  // ---------- storage: this phone ----------
+  const LS_KEY = "home-exercise-log-v1";
+  let localOk = false;
+  function loadLocal() {
+    try {
+      localStorage.setItem(LS_KEY + "-probe", "1"); localStorage.removeItem(LS_KEY + "-probe"); localOk = true;
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) { const o = JSON.parse(raw); if (o && typeof o === "object") {
+        const ent = o.entries || {}; state.entries = {};
+        Object.keys(ent).forEach((d) => { state.entries[d] = upgrade(ent[d]); });
+        state.milestones = o.milestones || {};
+        state.settings = Object.assign(state.settings, o.settings || {}); } }
+    } catch (e) { localOk = false; }
+  }
+  function saveLocal() {
+    if (!localOk) return;
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ entries: state.entries, milestones: state.milestones, settings: state.settings })); }
+    catch (e) { localOk = false; }
+  }
+
+  // ---------- status line ----------
+  function setStatus(kind, text) {
+    const box = document.getElementById("save-status");
+    box.className = "status " + (kind || "");
+    document.getElementById("save-text").textContent = text;
+  }
+
+  // ---------- sync between phones (encrypted, through public Nostr servers) ----------
+  const FIELDS = ["lines", "boards", "ball", "light", "seeds", "tray", "videos", "tags", "note"];
+  const RELAYS = ["wss://relay.primal.net", "wss://nos.lol", "wss://relay.snort.social", "wss://relay.ditto.pub", "wss://relay.damus.io", "wss://nostr.mom"];
+  const SYNC_KEY = "home-exercise-log-sync-v1";
+  const sync = { device: "", secret: "", pub: {}, created: {}, events: {}, peers: {}, hidePair: false, lastIn: 0 };
+  let room = null, pool = null, connectedAt = 0, joining = false;
+  let pubTimer = null, publishing = false, pubAgain = false, renderTimer = null, pairConfirm = false, hiddenAt = 0;
+  const seen = new Set();
+  const bump = (prev) => Math.max(Date.now(), (prev || 0) + 1);
+  const jstr = (v) => JSON.stringify(v === undefined ? null : v);
+
+  function hashStr(s) {
+    let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (h2 >>> 0).toString(16) + (h1 >>> 0).toString(16) + ":" + s.length;
+  }
+  function relayList() {
+    try { const o = JSON.parse(localStorage.getItem("dx-relays-override") || "null"); if (Array.isArray(o) && o.length) return o; } catch (e) { /* ignore */ }
+    return RELAYS;
+  }
+  function loadSync() {
+    try { const o = JSON.parse(localStorage.getItem(SYNC_KEY) || "null"); if (o && typeof o === "object") Object.assign(sync, o); } catch (e) { /* ignore */ }
+    if (!sync.device && window.DX) { sync.device = DX.newDeviceId(); saveSync(); }
+  }
+  function saveSync() { if (!localOk) return; try { localStorage.setItem(SYNC_KEY, JSON.stringify(sync)); } catch (e) { /* ignore */ } }
+
+  // values and merging: every field keeps the time it was last changed; the newer one wins
+  function normField(f, v) {
+    if (f === "videos") return Array.isArray(v) ? v.filter((k, i, a) => KEYS.includes(k) && a.indexOf(k) === i) : [];
+    if (f === "tags") return Array.isArray(v) ? v.filter((t, i, a) => TAGS.includes(t) && a.indexOf(t) === i) : [];
+    if (f === "note") return typeof v === "string" ? v.slice(0, 500) : "";
+    return typeof v === "number" && isFinite(v) && v >= 0 ? Math.min(999, Math.floor(v)) : null;
+  }
+  function mergeDay(d, vals, times) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+    const e = upgrade(state.entries[d]);
+    let changed = false;
+    FIELDS.forEach((f, i) => {
+      const t = Number(times[i]) || 0;
+      if (t <= 0) return;
+      const v = normField(f, vals[i]), lt = e.ts[f] || 0;
+      if (t > lt || (t === lt && jstr(v) > jstr(e[f]))) {
+        if (t !== lt || jstr(v) !== jstr(e[f])) { e[f] = v; e.ts[f] = t; changed = true; }
+      }
+    });
+    if (changed) { e.updated = Math.max(0, ...FIELDS.map((f) => e.ts[f] || 0)); state.entries[d] = e; }
+    return changed;
+  }
+  function msOf(id) {
+    const x = state.milestones[id];
+    if (!x) return { d: null, u: 0 };
+    if (typeof x === "string") return { d: x, u: 1 };
+    return { d: x.d || null, u: Number(x.u) || 0 };
+  }
+  const msDate = (id) => msOf(id).d;
+  function mergeMilestone(id, d, u) {
+    if (!MILESTONES.some((m) => m.id === id)) return false;
+    u = Number(u) || 0;
+    if (u <= 0) return false;
+    d = typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null;
+    const cur = msOf(id);
+    if (u > cur.u || (u === cur.u && jstr(d) > jstr(cur.d))) {
+      if (u !== cur.u || d !== cur.d) { state.milestones[id] = { d, u }; return true; }
+    }
+    return false;
+  }
+  function mergeSettings(name, born, u) {
+    u = Number(u) || 0;
+    if (u <= (state.settings.su || 0)) return false;
+    state.settings.name = String(name || "").slice(0, 40);
+    state.settings.born = /^\d{4}-\d{2}-\d{2}$/.test(born || "") ? born : "";
+    state.settings.su = u;
+    fillSettings();
+    return true;
+  }
+
+  // one encrypted package per month, plus one for name, birthday and first times
+  function buildChunks() {
+    const chunks = {};
+    Object.keys(state.entries).sort().forEach((d) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+      const e = upgrade(state.entries[d]);
+      if (!FIELDS.some((f) => e.ts[f])) return;
+      const c = d.slice(0, 7) + (Number(d.slice(8, 10)) <= 15 ? "a" : "b");   // half a month per package
+      (chunks[c] || (chunks[c] = { v: 1, c, d: {} })).d[d] = { v: FIELDS.map((f) => e[f]), t: FIELDS.map((f) => e.ts[f] || 0) };
+    });
+    const m = {};
+    Object.keys(state.milestones).sort().forEach((id) => { const x = msOf(id); if (x.u) m[id] = [x.d, x.u]; });
+    chunks.meta = { v: 1, c: "meta", s: [state.settings.name || "", state.settings.born || "", state.settings.su || 0], m };
+    return chunks;
+  }
+
+  function schedulePublish(delay) {
+    if (!room) return;
+    clearTimeout(pubTimer);
+    pubTimer = setTimeout(publishNow, delay === undefined ? 1500 : delay);
+  }
+  async function publishNow() {
+    pubTimer = null;
+    if (!room || !pool) return;
+    if (publishing) { pubAgain = true; return; }
+    publishing = true;
+    const r0 = room;
+    try {
+      const chunks = buildChunks();
+      for (const c of Object.keys(chunks)) {
+        const body = JSON.stringify(chunks[c]), h = hashStr(body);
+        if (sync.pub[c] === h) continue;
+        const dtag = "dx:" + sync.device + ":" + c;
+        const created = Math.max(Math.floor(Date.now() / 1000), (sync.created[dtag] || 0) + 1);
+        const content = await DX.seal(r0.key, chunks[c], dtag);
+        const ev = await DX.finalizeEvent({ kind: 30078, created_at: created, tags: [["d", dtag]], content }, r0.sk, r0.pkHex);
+        if (room !== r0) break;
+        sync.pub[c] = h; sync.created[dtag] = created; sync.events[dtag] = ev;
+        seen.add(ev.id);
+        pool.publish(ev);
+        saveSync();
+      }
+    } catch (e) {
+      schedulePublish(15000);
+    } finally {
+      publishing = false;
+      if (pubAgain) { pubAgain = false; schedulePublish(500); }
+      renderSyncStatus();
+    }
+  }
+
+  async function onRelayEvent(ev) {
+    if (!room || !ev || ev.pubkey !== room.pkHex || ev.kind !== 30078 || typeof ev.id !== "string" || seen.has(ev.id)) return;
+    const dtag = DX.dTag(ev);
+    const m = /^dx:([A-Za-z0-9_-]{4,40}):(\d{4}-\d{2}[ab]?|meta)$/.exec(dtag);
+    if (!m) return;
+    seen.add(ev.id);
+    const r0 = room;
+    const p = await DX.unseal(r0.key, ev.content, dtag);
+    if (!p || room !== r0 || p.v !== 1) return;
+    let changed = false;
+    if (m[2] === "meta") {
+      if (Array.isArray(p.s) && mergeSettings(p.s[0], p.s[1], p.s[2])) changed = true;
+      if (p.m && typeof p.m === "object") Object.keys(p.m).forEach((id) => { const x = p.m[id]; if (Array.isArray(x) && mergeMilestone(id, x[0], x[1])) changed = true; });
+    } else if (p.d && typeof p.d === "object") {
+      Object.keys(p.d).forEach((d) => { const x = p.d[d]; if (x && Array.isArray(x.v) && Array.isArray(x.t) && mergeDay(d, x.v, x.t)) changed = true; });
+    }
+    if (m[1] !== sync.device) {
+      const first = !sync.peers[m[1]];
+      sync.peers[m[1]] = Math.max(sync.peers[m[1]] || 0, Number(ev.created_at) || 1);
+      if (first) { saveSync(); renderPair(); }
+    }
+    sync.lastIn = Date.now();
+    if (changed) { saveLocal(); scheduleRender(); }
+    schedulePublish(1200);
+    renderSyncStatus();
+  }
+  function scheduleRender() { clearTimeout(renderTimer); renderTimer = setTimeout(render, 120); }
+
+  function startPool() {
+    if (pool) pool.stop();
+    pool = new DX.RelayPool({
+      relays: relayList(),
+      filter: { kinds: [30078], authors: [room.pkHex], limit: 500 },
+      onEvent: (ev) => { onRelayEvent(ev); },
+      onChange: () => renderSyncStatus()
+    });
+    Object.values(sync.events).forEach((ev) => { if (ev && ev.pubkey === room.pkHex) pool.remember(ev); });
+    pool.start();
+    connectedAt = Date.now();
+    setTimeout(renderSyncStatus, 12500);
+  }
+  async function connectRoom(secret) {
+    if (!window.DX || !window.crypto || !crypto.subtle) throw new Error("unsupported");
+    const next = await DX.deriveRoom(secret);
+    if (sync.secret !== secret) { sync.secret = secret; sync.pub = {}; sync.created = {}; sync.events = {}; sync.peers = {}; }
+    room = next;
+    saveSync();
+    startPool();
+    schedulePublish(400);
+    try { history.replaceState(null, "", location.pathname + "#join=" + secret); } catch (e) { /* ignore */ }
+    renderPair();
+    renderSyncStatus();
+  }
+  function disconnectRoom() {
+    if (pool) pool.stop();
+    pool = null; room = null;
+    clearTimeout(pubTimer); pubTimer = null;
+    sync.secret = ""; sync.pub = {}; sync.created = {}; sync.events = {}; sync.peers = {};
+    saveSync();
+    try { history.replaceState(null, "", location.pathname); } catch (e) { /* ignore */ }
+    renderPair();
+    renderSyncStatus();
+  }
+  async function joinRoom(secret, quiet) {
+    if (joining || (room && sync.secret === secret)) {
+      if (!quiet) showImportMsg("✓ This phone is already connected.");
+      return true;
+    }
+    joining = true;
+    try {
+      await connectRoom(secret);
+      sync.hidePair = false; saveSync();
+      showImportMsg("✓ Connected. Entries from the other phone appear here in a moment.");
+      return true;
+    } catch (e) {
+      showImportMsg(e && e.message === "unsupported"
+        ? "This browser cannot connect. Please update the phone or open the link in Safari or Chrome."
+        : "This invite link does not work. Please ask for a new one.");
+      return false;
+    } finally { joining = false; renderPair(); }
+  }
+  async function startNewRoom() {
+    try { await connectRoom(DX.newSecret()); sync.hidePair = false; saveSync(); renderPair(); }
+    catch (e) { setStatus("warn", "This browser cannot connect. Please update the phone or use Safari or Chrome."); }
+  }
+  function joinFromText(text) {
+    const m = /[#&?]join=([A-Za-z0-9_-]{16,64})/.exec(String(text || ""));
+    return m ? m[1] : "";
+  }
+  function showImportMsg(text) { const box = el("import-msg"); box.hidden = false; box.textContent = text; }
+
+  function renderSyncStatus() {
+    const st = room && pool ? pool.status() : null;
+    if (!st) {
+      setStatus(localOk ? "" : "warn", localOk ? "Saved on this phone." : "This phone cannot save here. Send it with WhatsApp before you close the page.");
+    } else if (pubTimer || publishing) {
+      setStatus("", "Saving…");
+    } else if (st.stored > 0 || (st.mine === 0 && st.ready > 0)) {
+      setStatus("ok", Object.keys(sync.peers).length ? "Saved and shared with the other phone" : "Saved on this phone and online");
+    } else if (st.ready > 0) {
+      setStatus("", "Saving online…");
+    } else if (Date.now() - connectedAt < 12000) {
+      setStatus("", "Connecting…");
+    } else {
+      setStatus("warn", "Offline. Saved on this phone. It syncs when the phone is online.");
+    }
+    const box = document.getElementById("pair-servers");
+    if (box && pool) {
+      const names = pool.urls.map((u) => {
+        const r = pool.relays[u];
+        const name = u.replace(/^wss?:\/\//, "").replace(/^relay\./, "").replace(/\/+$/, "");
+        const mark = pool.stores(u) ? "<b>✓</b> " : (r && r.open && r.lastError ? "✗ " : "○ ");
+        return mark + esc(name);
+      });
+      box.innerHTML = "Servers: " + names.join(" · ") + (st ? "<br>Saved online on " + st.stored + " of " + st.total : "");
+    }
+  }
+
+  const inviteLink = () => location.origin + location.pathname + "#join=" + sync.secret;
+  const inviteText = () => (state.settings.name ? state.settings.name + " · " : "") +
+    "Daily exercises app\nTap the link to open it. Our entries are then shared between both phones by themselves.\n" + inviteLink();
+
+  function renderPair() {
+    const peers = Object.keys(sync.peers).length;
+    let today = "", set = "";
+    const intro = '<p class="hint">Connect this app with the other parent’s phone. Entries then appear on both phones by themselves.</p>';
+    const startBtns = '<button class="btn primary" data-act="pair-start">Connect phones</button>' +
+      '<button class="btn" data-act="pair-have">I got an invite link</button>';
+    const inviteBtns = '<a class="btn primary" href="' + esc(waLink(inviteText())) + '" target="_blank" rel="noopener">Send invite with WhatsApp</a>' +
+      '<button class="btn" data-act="pair-copy">Copy invite link</button>';
+    if (!room) {
+      today = "<h2>Two phones</h2>" + intro + startBtns + '<button class="clear" data-act="pair-hide">Not now</button>';
+      set = "<h2>Two phones</h2>" + intro + startBtns;
+    } else {
+      if (!peers) {
+        today = "<h2>Two phones</h2><p class=\"hint\">Now send the invite to the other phone. As soon as it opens the link, the entries are shared.</p>" +
+          inviteBtns + '<button class="clear" data-act="pair-hide">Hide</button>';
+      }
+      set = "<h2>Two phones</h2>" +
+        '<p class="pair-ok">✓ This phone is connected.</p>' +
+        '<p class="hint">' + (peers ? "The other phone is connected too. Entries appear on both phones by themselves." :
+          "Waiting for the other phone. Send it the invite link.") + "</p>" +
+        '<p class="servers" id="pair-servers"></p>' + inviteBtns +
+        (pairConfirm
+          ? '<p class="hint">Disconnect this phone? Its entries stay on this phone, but they are no longer shared.</p>' +
+            '<div class="row2"><button class="btn" data-act="pair-disconnect-yes">Disconnect</button><button class="btn" data-act="pair-disconnect-no">Cancel</button></div>'
+          : '<button class="clear" data-act="pair-disconnect">Disconnect this phone</button>');
+    }
+    set += '<p class="hint">Entries are encrypted on the phone before they are sent. Only phones with the invite link can read them. They travel through public Nostr servers.</p>' +
+      '<div class="fallback" id="invite-fallback" hidden><p class="hint">Copying is blocked here. Press and hold the link, choose Select all, then Copy.</p><textarea id="invite-fallback-text" readonly></textarea></div>';
+    const t = el("pair-today");
+    t.innerHTML = today;
+    t.hidden = !today || !!sync.hidePair;
+    el("pair-settings").innerHTML = set;
+    renderSyncStatus();
+  }
+  async function copyInvite(btn) {
+    const label = btn.textContent;
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error("no clipboard");
+      await navigator.clipboard.writeText(inviteLink());
+      btn.textContent = "Copied ✓";
+      setTimeout(() => { btn.textContent = label; }, 1800);
+    } catch (e) {
+      state.tab = "guide"; renderTabs();
+      const box = el("invite-fallback"); box.hidden = false;
+      const ta = el("invite-fallback-text"); ta.value = inviteLink(); ta.focus(); ta.select();
+      box.scrollIntoView({ block: "center" });
+    }
+  }
+  function syncChanged() { if (room) schedulePublish(1500); renderSyncStatus(); }
+
+  // ---------- edits ----------
+  function setValue(key, value) {
+    const d = state.date;
+    const e = upgrade(entryFor(d));
+    e[key] = value;
+    e.ts[key] = bump(e.ts[key]);
+    e.updated = Math.max(e.updated || 0, e.ts[key]);
+    state.entries[d] = e;
+    saveLocal();
+    syncChanged();
+    render();
+  }
+  let noteTimer = null;
+  function setNote(text) {
+    const d = state.date;
+    const e = upgrade(entryFor(d));
+    e.note = String(text).slice(0, 500); e.ts.note = bump(e.ts.note);
+    e.updated = Math.max(e.updated || 0, e.ts.note);
+    state.entries[d] = e;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => { saveLocal(); syncChanged(); renderShare(); }, 600);
+  }
+
+  // ---------- text for WhatsApp ----------
+  function valueText(x, e) {
+    const v = e[x.key];
+    if (v === null || v === undefined) return "not done";
+    if (x.type === "scale") return v + " of " + x.max;
+    if (x.type === "level") return BOARD_LEVELS[v];
+    return String(v);
+  }
+  function dayText(dIso) {
+    const e = entryFor(dIso);
+    const lines = [titlePrefix() + "Exercises · " + fmtLong(fromIso(dIso))];
+    EXERCISES.forEach((x, i) => lines.push((i + 1) + " " + x.short + ": " + valueText(x, e)));
+    if (e.videos && e.videos.length) lines.push("Video: " + videoNames(e.videos));
+    if (e.tags && e.tags.length) lines.push("Noticed: " + e.tags.join(", ").toLowerCase());
+    if (e.note && e.note.trim()) lines.push("Note: " + e.note.trim());
+    return lines.join("\n") + (room ? "" : syncFooter([dIso]));
+  }
+  function weekStats(w) {
+    const days = [];
+    for (let i = 0; i < 7; i++) days.push(iso(addDays(weekStart(w), i)));
+    const gi = goalIndex(weekEnd(w));
+    const per = EXERCISES.map((x) => {
+      const vals = days.map((d) => state.entries[d] ? state.entries[d][x.key] : null).filter((v) => v !== null && v !== undefined);
+      const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      const goal = x.goals[gi];
+      return { x, avg, n: vals.length, goal, reached: avg !== null && avg >= goal };
+    });
+    const daysDone = days.filter((d) => hasAny(state.entries[d])).length;
+    return { days, per, daysDone, goalsReached: per.filter((p) => p.reached).length };
+  }
+  const fmtAvg = (v) => (v === null ? "–" : (Math.round(v * 10) / 10).toString());
+  function goalText(x, g) { return x.type === "level" ? BOARD_LEVELS[g] : String(g); }
+  function weekText(w) {
+    const s = weekStats(w);
+    const lines = [titlePrefix() + "Exercises · " + weekLabel(w) + " · " + s.daysDone + " of 7 days"];
+    s.per.forEach((p, i) => {
+      let val = p.avg === null ? "not done" : "average " + fmtAvg(p.avg);
+      if (p.x.type === "level" && p.avg !== null) val = "average " + fmtAvg(p.avg) + " (0 both hands – 3 no help)";
+      lines.push((i + 1) + " " + p.x.short + ": " + val + " · goal " + goalText(p.x, p.goal) + (p.reached ? " ✓" : ""));
+    });
+    const firsts = MILESTONES.filter((m) => msDate(m.id) && weekOf(msDate(m.id)) === w);
+    if (firsts.length) lines.push("First time: " + firsts.map((m) => m.text.toLowerCase()).join("; "));
+    const vids = s.days.map((d) => (state.entries[d] && state.entries[d].videos) || []).reduce((a, v) => a + v.length, 0);
+    if (vids) lines.push("Videos this week: " + vids);
+    return lines.join("\n") + (room ? "" : syncFooter(s.days));
+  }
+  const waNumber = () => { let n = String(state.settings.wa || "").replace(/\D/g, ""); if (n.startsWith("00")) n = n.slice(2); return n.length >= 8 && !n.startsWith("0") ? n : ""; };
+  const waLink = (text) => "https://wa.me/" + waNumber() + "?text=" + encodeURIComponent(text);
+  const titlePrefix = () => (state.settings.name ? state.settings.name + " · " : "");
+  const videoNames = (keys) => EXERCISES.map((x, i) => (keys.includes(x.key) ? (i + 1) + " " + x.short : null)).filter(Boolean).join(", ");
+  function ageText(bornIso, onIso) {
+    if (!bornIso) return "";
+    const b = fromIso(bornIso), o = fromIso(onIso);
+    let m = (o.getFullYear() - b.getFullYear()) * 12 + (o.getMonth() - b.getMonth());
+    if (o.getDate() < b.getDate()) m -= 1;
+    if (m < 0) return "";
+    const y = Math.floor(m / 12), r = m % 12;
+    const ys = y ? y + (y === 1 ? " year" : " years") : "", ms = r + (r === 1 ? " month" : " months");
+    return y ? ys + " " + ms : ms;
+  }
+
+  async function copy(text, btn, fallbackId) {
+    const label = btn.textContent;
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error("no clipboard");
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "Copied ✓";
+      setTimeout(() => { btn.textContent = label; }, 1800);
+    } catch (e) {
+      const box = document.getElementById(fallbackId);
+      box.hidden = false;
+      const ta = document.getElementById(fallbackId + "-text");
+      ta.value = text; ta.focus(); ta.select();
+    }
+  }
+
+  // ---------- render ----------
+  const el = (id) => document.getElementById(id);
+  function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+  function renderCalendar() {
+    const d = fromIso(state.date);
+    el("cal-weekday").textContent = d.toLocaleDateString("en-GB", { weekday: "long" });
+    el("cal-day").textContent = String(d.getDate());
+    el("cal-month").textContent = d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    const n = diffDays(d, START) + 1;
+    let meta;
+    if (n < 1) meta = "Program starts on 10 November";
+    else if (n <= TOTAL_DAYS) meta = "Day " + n + " of " + TOTAL_DAYS + " · Week " + weekOf(state.date);
+    else meta = "Program day " + n + " · after 31 January";
+    el("cal-meta").textContent = meta;
+    el("next-day").disabled = state.date >= todayIso();
+    el("go-today").hidden = state.date === todayIso();
+  }
+
+  function renderExercises() {
+    const e = entryFor(state.date);
+    const html = EXERCISES.map((x, i) => {
+      const v = e[x.key];
+      const done = v !== null && v !== undefined;
+      let control = "";
+      if (x.type === "scale") {
+        control = '<div class="chips" role="group" aria-label="' + esc(x.q) + '">' +
+          Array.from({ length: x.max + 1 }, (_, k) =>
+            '<button class="chip" id="c-' + x.key + '-' + k + '" data-act="set" data-key="' + x.key + '" data-val="' + k + '" aria-pressed="' + (v === k) + '">' + k + "</button>").join("") + "</div>";
+      } else if (x.type === "level") {
+        control = '<div class="chips" role="group" aria-label="' + esc(x.q) + '">' +
+          BOARD_LEVELS.map((lab, k) =>
+            '<button class="chip wide" id="c-' + x.key + '-' + k + '" data-act="set" data-key="' + x.key + '" data-val="' + k + '" aria-pressed="' + (v === k) + '">' + esc(lab.charAt(0).toUpperCase() + lab.slice(1)) + "</button>").join("") + "</div>";
+      } else {
+        control = '<div class="stepper">' +
+          '<button class="chip" id="c-' + x.key + '-minus" data-act="dec" data-key="' + x.key + '" aria-label="One less">−</button>' +
+          '<div class="count' + (done ? "" : " empty") + '" aria-live="polite">' + (done ? v : "not done") + "</div>" +
+          '<button class="chip" id="c-' + x.key + '-plus" data-act="inc" data-key="' + x.key + '" aria-label="One more">+</button>' +
+          (done ? '<button class="clear" id="c-' + x.key + '-clear" data-act="clear" data-key="' + x.key + '">Clear</button>' : "") +
+          "</div>";
+      }
+      return '<div class="ex' + (done ? " done" : "") + '">' +
+        '<div class="ex-head"><div class="num">' + (i + 1) + '</div><div><div class="ex-title">' + esc(x.title) + '</div><div class="ex-q">' + esc(x.q) + "</div></div></div>" +
+        control +
+        '<details class="how"><summary>How?</summary><p>' + esc(x.how) + (x.safe ? ' <span class="safe">' + esc(x.safe) + "</span>" : "") + "</p></details>" +
+        "</div>";
+    }).join("");
+    // keep open "How?" panels across re-renders
+    const open = new Set(Array.from(document.querySelectorAll("#ex-list details[open]")).map((dt) => dt.dataset.k));
+    el("ex-list").innerHTML = html;
+    Array.from(el("ex-list").querySelectorAll("details")).forEach((dt, i) => { dt.dataset.k = EXERCISES[i].key; if (open.has(EXERCISES[i].key)) dt.open = true; });
+  }
+
+  function renderChild() {
+    const st = state.settings;
+    const has = !!st.name;
+    el("setup-card").hidden = has;
+    el("child-line").hidden = !has;
+    if (has) {
+      el("child-name").textContent = st.name;
+      const age = ageText(st.born, state.date);
+      el("child-age").textContent = st.born ? "Born " + fromIso(st.born).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) + (age ? " · " + age : "") : "";
+    }
+    const standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+    el("install-tip").hidden = standalone || !!st.tipHidden || !!window.claude;
+    const vids = entryFor(state.date).videos || [];
+    el("videos").innerHTML = EXERCISES.map((x, i) =>
+      '<button class="chip wide" id="vid-' + x.key + '" data-act="video" data-key="' + x.key + '" aria-pressed="' + vids.includes(x.key) + '">' + (i + 1) + " " + esc(x.short) + "</button>").join("");
+  }
+
+  function renderTags() {
+    const e = entryFor(state.date);
+    el("tags").innerHTML = TAGS.map((t, i) =>
+      '<button class="chip wide" id="tag-' + i + '" data-act="tag" data-tag="' + esc(t) + '" aria-pressed="' + (e.tags || []).includes(t) + '">' + esc(t) + "</button>").join("");
+    const note = el("note");
+    if (document.activeElement !== note) note.value = e.note || "";
+  }
+
+  function renderShare() {
+    el("wa-day").href = waLink(dayText(state.date));
+    el("wa-week").href = waLink(weekText(state.week));
+  }
+
+  function spark(w, p) {
+    const W = 320, H = 92, left = 6, right = 6, top = 16, bottom = 18;
+    const weeks = Math.max(12, w);
+    const x = p.x;
+    const series = [];
+    for (let k = 1; k <= weeks; k++) { const s = weekStats(k).per.find((q) => q.x.key === x.key); series.push(s); }
+    const maxV = x.type === "count" ? Math.max(x.goals[2], ...series.map((s) => s.avg || 0)) : x.max;
+    const bw = (W - left - right) / weeks;
+    const yv = (v) => top + (H - top - bottom) * (1 - v / maxV);
+    let bars = "", goalPath = "", labels = "";
+    series.forEach((s, i) => {
+      const k = i + 1, x0 = left + i * bw;
+      const g = s.goal;
+      goalPath += (i === 0 ? "M" : "L") + x0.toFixed(1) + " " + yv(g).toFixed(1) + " L" + (x0 + bw).toFixed(1) + " " + yv(g).toFixed(1) + " ";
+      if (s.avg !== null) {
+        const h = Math.max(2, (H - top - bottom) * (s.avg / maxV));
+        const cur = k === w;
+        bars += '<rect x="' + (x0 + 2).toFixed(1) + '" y="' + (H - bottom - h).toFixed(1) + '" width="' + (bw - 4).toFixed(1) + '" height="' + h.toFixed(1) +
+          '" rx="3" fill="var(--accent)" fill-opacity="' + (cur ? 1 : 0.4) + '"><title>Week ' + k + ": " + fmtAvg(s.avg) + " (goal " + esc(goalText(x, g)) + ")</title></rect>";
+        if (cur) labels += '<text x="' + (x0 + bw / 2).toFixed(1) + '" y="' + (H - bottom - h - 4).toFixed(1) + '" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">' + fmtAvg(s.avg) + "</text>";
+      }
+    });
+    const curX = left + (w - 1) * bw;
+    labels += '<text x="' + (curX + bw / 2).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="11" fill="var(--ink-2)">W' + w + "</text>";
+    if (w !== 1) labels += '<text x="' + (left + bw / 2).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="11" fill="var(--ink-2)">W1</text>';
+    return '<svg class="spark" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(x.title) + ', weekly averages and goals">' +
+      '<line x1="' + left + '" x2="' + (W - right) + '" y1="' + (H - bottom) + '" y2="' + (H - bottom) + '" stroke="var(--line)" stroke-width="1"/>' +
+      bars + '<path d="' + goalPath + '" fill="none" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="4 3"/>' + labels + "</svg>";
+  }
+
+  function renderProgress() {
+    const w = state.week;
+    el("week-label").textContent = weekLabel(w);
+    el("next-week").disabled = w >= weekOf(todayIso());
+    el("prev-week").disabled = w <= 1;
+    const s = weekStats(w);
+    el("sum-days").textContent = s.daysDone + " of 7";
+    el("sum-goals").textContent = s.goalsReached + " of 6";
+    const vids = s.days.map((d) => (state.entries[d] && state.entries[d].videos) || []).reduce((a, v) => a + v.length, 0);
+    el("sum-videos").textContent = "Videos this week: " + vids;
+    el("progress-rows").innerHTML = s.per.map((p, i) => {
+      const pill = p.reached ? '<span class="pill good">✓ Goal reached</span>' : '<span class="pill">Goal ' + esc(goalText(p.x, p.goal)) + "</span>";
+      const val = p.avg === null ? "no entries" : "average " + fmtAvg(p.avg) + (p.x.type === "level" ? " of 3" : (p.x.type === "scale" ? " of 5" : ""));
+      return '<div class="prow"><div class="prow-top"><span class="prow-name">' + (i + 1) + " " + esc(p.x.title) + "</span>" + pill + "</div>" +
+        '<div class="prow-val">This week: ' + esc(val) + (p.x.type === "level" ? " · 0 both hands, 3 no help" : "") + "</div>" + spark(w, p) + "</div>";
+    }).join("");
+    el("milestones").innerHTML = MILESTONES.map((m) => {
+      const when = msDate(m.id);
+      return '<div class="ms"><div><div>' + esc(m.text) + "</div>" + (when ? '<div class="when">✓ ' + esc(fmtLong(fromIso(when))) + "</div>" : "") + "</div>" +
+        '<button class="mark' + (when ? " on" : "") + '" id="ms-' + m.id + '" data-act="ms" data-id="' + m.id + '">' + (when ? "Undo" : "Today") + "</button></div>";
+    }).join("");
+  }
+
+  function renderGuide() {
+    el("guide-list").innerHTML = EXERCISES.map((x, i) =>
+      '<div class="guide-ex"><h3>' + (i + 1) + " " + esc(x.title) + "</h3><div>" + esc(x.how) + "</div>" +
+      (x.safe ? '<div class="safe">' + esc(x.safe) + "</div>" : "") + '<div class="hint">Write down: ' + esc(x.q.toLowerCase()) + ".</div></div>").join("");
+    el("goals-table").innerHTML = "<thead><tr><th>Exercise</th><th>Nov</th><th>Dec</th><th>Jan</th></tr></thead><tbody>" +
+      EXERCISES.map((x, i) => "<tr><td>" + (i + 1) + " " + esc(x.short) + "</td>" + x.goals.map((g) => "<td>" + esc(goalText(x, g)) + "</td>").join("") + "</tr>").join("") +
+      "</tbody>";
+  }
+
+  function renderTabs() {
+    ["today", "progress", "guide"].forEach((t) => {
+      el("tab-" + t).setAttribute("aria-selected", String(state.tab === t));
+      el("view-" + t).hidden = state.tab !== t;
+    });
+  }
+
+  function render() {
+    renderTabs();
+    renderPair();
+    renderChild();
+    renderCalendar();
+    renderExercises();
+    renderTags();
+    renderProgress();
+    renderShare();
+  }
+
+  // ---------- events ----------
+  document.addEventListener("click", (ev) => {
+    const t = ev.target.closest("[data-act], [data-tab], #prev-day, #next-day, #go-today, #prev-week, #next-week, #copy-day, #copy-week, #setup-save, #set-save, #install-tip-close, #backup-save, #import-open, #import-cancel, #import-save, [data-act^='pair-']");
+    if (!t) return;
+    if (t.dataset.tab) { state.tab = t.dataset.tab; if (state.tab === "progress") state.week = weekOf(state.date); render(); window.scrollTo(0, 0); return; }
+    switch (t.id) {
+      case "prev-day": state.date = iso(addDays(fromIso(state.date), -1)); render(); return;
+      case "next-day": if (state.date < todayIso()) { state.date = iso(addDays(fromIso(state.date), 1)); render(); } return;
+      case "go-today": state.date = todayIso(); render(); return;
+      case "prev-week": if (state.week > 1) { state.week--; renderProgress(); renderShare(); } return;
+      case "next-week": if (state.week < weekOf(todayIso())) { state.week++; renderProgress(); renderShare(); } return;
+      case "copy-day": copy(dayText(state.date), t, "fallback-day"); return;
+      case "copy-week": copy(weekText(state.week), t, "fallback-week"); return;
+      case "setup-save": {
+        const n = el("setup-name").value.trim();
+        if (!n) { el("setup-name").focus(); return; }
+        state.settings.name = n.slice(0, 40); state.settings.born = el("setup-born").value || "";
+        state.settings.su = bump(state.settings.su);
+        saveLocal(); fillSettings(); syncChanged(); render(); return; }
+      case "set-save": {
+        const nn = el("set-name").value.trim().slice(0, 40), nb = el("set-born").value || "";
+        if (nn !== state.settings.name || nb !== state.settings.born) state.settings.su = bump(state.settings.su);
+        state.settings.name = nn;
+        state.settings.born = nb;
+        state.settings.wa = el("set-wa").value.trim().slice(0, 24);
+        saveLocal(); syncChanged(); render();
+        t.textContent = "Saved ✓"; setTimeout(() => { t.textContent = "Save settings"; }, 1600);
+        el("set-wa-hint").textContent = state.settings.wa && !waNumber() ? "Please add the country code, e.g. 49 for Germany." : (waNumber() ? "Results go straight to this number." : "Empty: WhatsApp asks who should get the message.");
+        return; }
+      case "install-tip-close": state.settings.tipHidden = true; saveLocal(); renderChild(); return;
+      case "backup-save": saveBackup(); return;
+      case "import-open": openImport(); return;
+      case "import-cancel": el("import-panel").hidden = true; el("import-open").hidden = false; return;
+      case "import-save": {
+        const res = importText(el("import-text").value);
+        importMessage(res);
+        if (res.ok) { el("import-text").value = ""; el("import-panel").hidden = true; el("import-open").hidden = false; }
+        return; }
+    }
+    const act = t.dataset.act, key = t.dataset.key;
+    if (act && act.indexOf("pair-") === 0) {
+      if (act === "pair-start") startNewRoom();
+      else if (act === "pair-have") { state.tab = "today"; renderTabs(); openImport(); el("import-card").scrollIntoView({ block: "center" }); }
+      else if (act === "pair-hide") { sync.hidePair = true; saveSync(); renderPair(); }
+      else if (act === "pair-copy") copyInvite(t);
+      else if (act === "pair-disconnect") { pairConfirm = true; renderPair(); }
+      else if (act === "pair-disconnect-no") { pairConfirm = false; renderPair(); }
+      else if (act === "pair-disconnect-yes") { pairConfirm = false; disconnectRoom(); }
+      return;
+    }
+    const e = entryFor(state.date);
+    if (act === "set") { const v = Number(t.dataset.val); setValue(key, e[key] === v ? null : v); }
+    else if (act === "inc") { const v = e[key]; setValue(key, v === null || v === undefined ? 1 : Math.min(999, v + 1)); }
+    else if (act === "dec") { const v = e[key]; setValue(key, v === null || v === undefined ? 0 : Math.max(0, v - 1)); }
+    else if (act === "clear") { setValue(key, null); }
+    else if (act === "tag") {
+      const tag = t.dataset.tag; const tags = (e.tags || []).slice();
+      const k = tags.indexOf(tag); if (k >= 0) tags.splice(k, 1); else tags.push(tag);
+      setValue("tags", tags);
+    } else if (act === "video") {
+      const vids = (e.videos || []).slice(); const k = vids.indexOf(key);
+      if (k >= 0) vids.splice(k, 1); else vids.push(key);
+      setValue("videos", vids);
+    } else if (act === "ms") {
+      const id = t.dataset.id, cur = msOf(id);
+      state.milestones[id] = { d: cur.d ? null : todayIso(), u: bump(cur.u) };
+      saveLocal(); syncChanged(); renderProgress(); renderShare();
+    }
+  });
+  document.addEventListener("input", (ev) => { if (ev.target.id === "note") setNote(ev.target.value); });
+  window.addEventListener("hashchange", () => {
+    const h = location.hash || "";
+    if (h.includes(SYNC_TAG)) { readSyncHash(); window.scrollTo(0, 0); }
+    const j = joinFromText(h);
+    if (j && j !== sync.secret) { joinRoom(j); window.scrollTo(0, 0); }
+  });
+  window.addEventListener("online", () => { if (pool) pool.wake(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") { hiddenAt = Date.now(); return; }
+    if (pool) { if (hiddenAt && Date.now() - hiddenAt > 15000) pool.refresh(); else pool.wake(); }
+    hiddenAt = 0;
+    const now = todayIso();
+    if (now !== lastToday) { if (state.date === lastToday) state.date = now; lastToday = now; render(); }
+  });
+
+  // ---------- WhatsApp sync: entries travel inside the message ----------
+  const SYNC_TAG = "EX1:";
+  function b64urlEncode(str) {
+    const bytes = new TextEncoder().encode(str); let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function b64urlDecode(str) {
+    let t = str.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "=";
+    const bin = atob(t); const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  const KEYS = EXERCISES.map((x) => x.key);
+  const toBits = (arr, list) => list.reduce((m, v, i) => ((arr || []).includes(v) ? m | (1 << i) : m), 0);
+  const fromBits = (m, list) => list.filter((v, i) => (m >> i) & 1);
+  function packDays(dates) {
+    const rows = dates.filter((d) => state.entries[d]).map((d) => {
+      const e = upgrade(state.entries[d]);
+      return [d].concat(KEYS.map((k) => (e[k] === null || e[k] === undefined ? -1 : e[k])),
+        [toBits(e.videos, KEYS), toBits(e.tags, TAGS), e.note || "", e.updated || 0, FIELDS.map((f) => e.ts[f] || 0)]);
+    }).filter((r) => r.slice(1, 7).some((v) => v !== -1) || r[7] || r[8] || r[9]);
+    const o = { v: 1, d: rows };
+    if (state.settings.name) { o.n = state.settings.name; if (state.settings.born) o.b = state.settings.born; o.su = state.settings.su || 1; }
+    const ms = {};
+    Object.keys(state.milestones).forEach((id) => { const x = msOf(id); if (x.u) ms[id] = [x.d, x.u]; });
+    if (Object.keys(ms).length) o.m = ms;
+    return SYNC_TAG + b64urlEncode(JSON.stringify(o));
+  }
+  function importText(text) {
+    const j = joinFromText(text);
+    if (j) { joinRoom(j); return { ok: true, joined: true, added: [], same: [] }; }
+    const m = String(text || "").match(/EX1:([A-Za-z0-9_-]{8,})/);
+    if (!m) return { ok: false, reason: "none" };
+    let o;
+    try { o = JSON.parse(b64urlDecode(m[1])); } catch (e) { return { ok: false, reason: "broken" }; }
+    if (!o || o.v !== 1 || !Array.isArray(o.d)) return { ok: false, reason: "broken" };
+    const added = [], same = [];
+    o.d.forEach((r) => {
+      if (!Array.isArray(r) || !/^\d{4}-\d{2}-\d{2}$/.test(r[0])) return;
+      const vals = KEYS.map((k, i) => { const v = r[1 + i]; return typeof v === "number" && v >= 0 ? v : null; })
+        .concat([fromBits(Number(r[7]) || 0, KEYS), fromBits(Number(r[8]) || 0, TAGS), String(r[9] || "")]);
+      const upd = Number(r[10]) || Date.now();
+      const times = Array.isArray(r[11]) ? r[11] : vals.map((v) => ((Array.isArray(v) ? v.length : (typeof v === "string" ? v.length : v !== null)) ? upd : 0));
+      if (mergeDay(r[0], vals, times)) added.push(r[0]); else same.push(r[0]);
+    });
+    if (o.m && typeof o.m === "object") {
+      Object.keys(o.m).forEach((id) => { const x = o.m[id]; if (Array.isArray(x)) mergeMilestone(id, x[0], x[1]); else if (typeof x === "string") mergeMilestone(id, x, 1); });
+    }
+    if (o.n) mergeSettings(o.n, o.b || "", o.su || 1);
+    saveLocal();
+    syncChanged();
+    if (added.length === 1 && added[0] <= todayIso()) { state.date = added[0]; state.tab = "today"; }
+    render();
+    return { ok: true, added: added.sort(), same: same.sort() };
+  }
+  function importMessage(res) {
+    if (res.joined) return;
+    const box = el("import-msg"); box.hidden = false;
+    if (!res.ok) { box.textContent = res.reason === "none"
+      ? "Nothing found. Copy the whole message from WhatsApp, including the link or code at the end."
+      : "The code in the message is incomplete. Copy the whole message again."; return; }
+    const names = (list) => list.map((d) => fromIso(d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })).join(", ");
+    if (res.added.length) box.textContent = "✓ Saved: " + names(res.added) + (res.same.length ? ". Already up to date: " + names(res.same) : "") + ".";
+    else box.textContent = "Already up to date: " + (res.same.length ? names(res.same) : "nothing new") + ".";
+  }
+  const hostedLink = () => (!window.claude && location.protocol === "https:") ? location.origin + location.pathname : "";
+  function syncFooter(dates) {
+    const code = packDays(dates);
+    const link = hostedLink();
+    if (link) return "\n\nSave in the app: " + link + "#" + code;
+    return "\n\nTo save this in the app: copy this message, open the app, tap “Add entries from a WhatsApp message” and paste.\n" + code;
+  }
+
+  // ---------- settings & backup ----------
+  function fillSettings() {
+    el("set-name").value = state.settings.name || "";
+    el("set-born").value = state.settings.born || "";
+    el("set-wa").value = state.settings.wa || "";
+  }
+  function backupJson() {
+    return JSON.stringify({ app: "daily-exercises", version: 1, saved: new Date().toISOString(),
+      settings: { name: state.settings.name, born: state.settings.born, su: state.settings.su || 0 }, entries: state.entries, milestones: state.milestones }, null, 1);
+  }
+  function saveBackup() {
+    const text = backupJson();
+    const name = "exercises-backup-" + todayIso() + ".json";
+    try {
+      if (window.claude) throw new Error("downloads blocked");
+      const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+      const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+      el("backup-msg").textContent = "Backup file saved: " + name + ". It is in your Downloads or Files.";
+    } catch (e) {
+      el("fallback-backup").hidden = false; el("fallback-backup-text").value = text;
+    }
+  }
+  function loadBackup(file) {
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const o = JSON.parse(String(r.result));
+        if (!o || typeof o !== "object" || !o.entries) throw new Error("bad");
+        let n = 0;
+        Object.keys(o.entries).forEach((d) => {
+          const inc = upgrade(o.entries[d]);
+          if (mergeDay(d, FIELDS.map((f) => inc[f]), FIELDS.map((f) => inc.ts[f] || 0))) n++;
+        });
+        const mo = o.milestones || {};
+        Object.keys(mo).forEach((id) => { const x = mo[id]; if (typeof x === "string") mergeMilestone(id, x, 1); else if (x && typeof x === "object") mergeMilestone(id, x.d, x.u); });
+        if (o.settings && o.settings.name) mergeSettings(o.settings.name, o.settings.born || "", o.settings.su || 1);
+        saveLocal(); syncChanged(); fillSettings(); render();
+        el("backup-msg").textContent = "Backup loaded: " + n + " days.";
+      } catch (e) { el("backup-msg").textContent = "This file is not a backup from this app."; }
+    };
+    r.onerror = () => { el("backup-msg").textContent = "The file could not be read. Please try again."; };
+    r.readAsText(file);
+  }
+  document.addEventListener("change", (ev) => { if (ev.target.id === "backup-load" && ev.target.files && ev.target.files[0]) { loadBackup(ev.target.files[0]); ev.target.value = ""; } });
+  async function openImport() {
+    el("import-msg").hidden = true;
+    el("import-open").hidden = true;
+    el("import-panel").hidden = false;
+    el("import-text").focus();
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const clip = await navigator.clipboard.readText();
+        if (clip && (clip.includes(SYNC_TAG) || joinFromText(clip)) && !el("import-panel").hidden) {
+          const res = importText(clip);
+          importMessage(res);
+          if (res.ok) { el("import-panel").hidden = true; el("import-open").hidden = false; }
+        }
+      }
+    } catch (e) { /* no clipboard access: the box is there */ }
+  }
+  function readSyncHash() {
+    try {
+      const h = decodeURIComponent(location.hash || "");
+      if (!h.includes(SYNC_TAG)) return;
+      const res = importText(h);
+      importMessage(res);
+      history.replaceState(null, "", location.pathname + location.search);
+    } catch (e) { /* ignore */ }
+  }
+  function readSetupHash() {
+    try {
+      const h = decodeURIComponent((location.hash || "").slice(1));
+      if (!h.includes("=")) return;
+      const p = new URLSearchParams(h);
+      const n = (p.get("name") || "").trim(), b = (p.get("born") || "").trim();
+      if (n && !state.settings.name) { state.settings.name = n.slice(0, 40); if (/^\d{4}-\d{2}-\d{2}$/.test(b)) state.settings.born = b; state.settings.su = bump(state.settings.su); saveLocal(); }
+    } catch (e) { /* ignore */ }
+  }
+
+  // ---------- start ----------
+  function start(saved) {
+    loadLocal();
+    loadSync();
+    readSetupHash();
+    readSyncHash();
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
+    if (!window.claude && "serviceWorker" in navigator && location.protocol === "https:") {
+      try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch (e) { /* ignore */ }
+    }
+    if (saved && saved.tab && ["today", "progress", "guide"].includes(saved.tab)) state.tab = saved.tab;
+    if (saved && saved.date && saved.date <= todayIso()) state.date = saved.date;
+    state.week = weekOf(state.date);
+    renderGuide();
+    fillSettings();
+    render();
+    renderSyncStatus();
+    const j = joinFromText(location.hash || "");
+    if (j && j !== sync.secret) joinRoom(j, true);
+    else if (sync.secret) connectRoom(sync.secret).catch(() => setStatus("warn", "Syncing does not work in this browser. Entries stay on this phone."));
+  }
+  const hot = window.claude && window.claude.hot;
+  if (hot && typeof hot.snapshot === "function") hot.snapshot(() => ({ tab: state.tab, date: state.date }));
+  if (hot && typeof hot.ready === "function") hot.ready(start); else start((hot && hot.data) || {});
+})();
+</script>
+</body>
+</html>
