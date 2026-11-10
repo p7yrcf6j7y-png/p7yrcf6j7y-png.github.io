@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Daily Exercises</title>
 <meta name="theme-color" content="#17213a">
-<meta name="app-version" content="2026-11-10b">
+<meta name="app-version" content="2026-11-10c">
 <meta name="apple-mobile-web-app-title" content="Exercises">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -163,7 +163,26 @@ table.goals th:first-child, table.goals td:first-child { text-align: left; }
 .tablewrap { overflow-x: auto; }
 ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 
-.child { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 0 4px; }
+.child { display: flex; align-items: center; gap: 14px; padding: 0 4px; }
+.child-text { flex: 1; min-width: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 2px 10px; flex-wrap: wrap; }
+.child.has-photo .child-text { flex-direction: column; align-items: flex-start; justify-content: center; }
+.avatar { display: block; flex: none; width: 68px; height: 68px; border-radius: 50%; object-fit: cover; background: var(--surface);
+  border: 3px solid var(--surface); box-shadow: 0 1px 8px rgba(23, 33, 58, .2); }
+.avatar.big { width: 88px; height: 88px; }
+.avatar.empty { display: grid; place-items: center; border: 2px dashed var(--line); background: var(--bg); color: var(--ink-2); box-shadow: none; }
+.photo-row { display: flex; align-items: center; gap: 14px; }
+.photo-btns { flex: 1; min-width: 0; display: grid; gap: 2px; justify-items: start; }
+.photo-btns .btn { width: 100%; }
+.photo-state.ok { color: var(--good); font-weight: 700; }
+.cropper { display: grid; gap: 10px; }
+.crop-box { position: relative; width: 100%; max-width: 320px; height: 300px; margin: 0 auto; overflow: hidden; border-radius: 16px;
+  background: #10141c; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.crop-box img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; pointer-events: none;
+  -webkit-user-drag: none; -webkit-touch-callout: none; }
+.crop-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .9);
+  box-shadow: 0 0 0 9999px rgba(16, 20, 28, .55); pointer-events: none; }
+.zoom-row { display: flex; align-items: center; gap: 10px; font-size: 20px; color: var(--ink-2); padding: 0 4px; }
+.zoom-row input { flex: 1; min-height: 36px; accent-color: var(--accent); }
 .child-name { font-family: var(--font-display); font-weight: 800; font-size: 22px; }
 .child-age { font-size: 14px; color: var(--ink-2); }
 .field { display: grid; gap: 6px; }
@@ -211,7 +230,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       <span>Tip: add this app to your Home Screen. iPhone: Safari → Share → <b>Add to Home Screen</b>. Android: Chrome → ⋮ → <b>Add to Home screen</b>.</span>
       <button id="install-tip-close" aria-label="Hide tip">OK</button>
     </div>
-    <div class="child" id="child-line" hidden><span class="child-name" id="child-name"></span><span class="child-age" id="child-age"></span></div>
+    <div class="child" id="child-line" hidden><img class="avatar" id="child-photo" alt="" hidden><div class="child-text"><span class="child-name" id="child-name"></span><span class="child-age" id="child-age"></span></div></div>
     <div class="calendar">
       <div class="band" aria-hidden="true"></div>
       <div class="cal-body">
@@ -359,6 +378,24 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     <div class="card" id="pair-settings"></div>
     <div class="card" id="settings">
       <h2>Settings</h2>
+      <div class="photo-row" id="set-photo-row">
+        <img class="avatar big" id="set-photo-img" alt="Photo of the child" hidden>
+        <span class="avatar big empty" id="set-photo-empty"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M3.5 8h3.2l1.8-2.6h7l1.8 2.6h3.2v11h-17z"/><circle cx="12" cy="13.2" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"/></svg></span>
+        <div class="photo-btns">
+          <label class="btn filebtn" for="set-photo"><span id="set-photo-label">Choose a photo</span><input id="set-photo" type="file" accept="image/*"></label>
+          <button class="clear" data-act="photo-remove" id="set-photo-remove" hidden>Remove photo</button>
+        </div>
+      </div>
+      <div class="row2" id="photo-confirm" hidden><button class="btn" data-act="photo-remove-yes">Remove</button><button class="btn" data-act="photo-remove-no">Cancel</button></div>
+      <p class="hint" id="set-photo-msg" role="status" hidden></p>
+      <p class="hint photo-state" id="set-photo-state" hidden></p>
+      <div class="cropper" id="cropper" hidden>
+        <p class="hint">Move the photo with your finger so the face is inside the circle. Zoom with the slider or with two fingers.</p>
+        <div class="crop-box" id="crop-box"><img id="crop-img" alt="" draggable="false"><div class="crop-ring"></div></div>
+        <div class="zoom-row"><span aria-hidden="true">−</span><input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1" aria-label="Zoom"><span aria-hidden="true">+</span></div>
+        <div class="row2"><button class="btn primary" data-act="photo-use">Use this photo</button><button class="btn" data-act="photo-cancel">Cancel</button></div>
+      </div>
+      <p class="hint">The photo is shared with the other phone encrypted, like the entries. Only phones with the invite link can see it.</p>
       <div class="row2">
         <div class="field"><label class="lbl" for="set-name">Child’s name</label><input id="set-name" autocomplete="off"></div>
         <div class="field"><label class="lbl" for="set-born">Birthday</label><input id="set-born" type="date"></div>
@@ -566,6 +603,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       this.filter = opts.filter;
       this.onEvent = opts.onEvent || (() => {});
       this.onChange = opts.onChange || (() => {});
+      this.optional = opts.optional || (() => false);   // d tags that must not hold up "saved online" (e.g. a photo)
       this.WS = opts.WebSocket || root.WebSocket;
       this.relays = {};
       this.latest = {};              // d tag -> our newest event
@@ -600,11 +638,11 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     }
     _open(url) {
       const r = this.relays[url] || (this.relays[url] = { url, ws: null, open: false, eose: false, tries: 0, timer: null,
-        eoseTimer: null, has: new Set(), sent: new Set(), ok: new Set(), lastError: "" });
+        eoseTimer: null, has: new Set(), sent: new Set(), ok: new Set(), bad: new Set(), lastError: "" });
       if (!this.active || r.ws) return;
       let ws;
       try { ws = new this.WS(url); } catch (e) { r.lastError = "cannot connect"; this._retry(r); return; }
-      r.ws = ws; r.open = false; r.eose = false; r.has = new Set(); r.sent = new Set(); r.ok = new Set(); r.lastError = "";
+      r.ws = ws; r.open = false; r.eose = false; r.has = new Set(); r.sent = new Set(); r.ok = new Set(); r.bad = new Set(); r.lastError = "";
       const guard = setTimeout(() => { if (r.ws === ws && !r.open) { try { ws.close(); } catch (e) { /* ignore */ } this._closed(r, ws); } }, 12000);
       ws.onopen = () => {
         clearTimeout(guard);
@@ -648,8 +686,8 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         clearTimeout(r.eoseTimer); r.eose = true; this._flush(r); this.onChange();
       } else if (type === "OK") {
         const msg = String(m[3] || "");
-        if (m[2] === true || /^duplicate/i.test(msg)) { r.ok.add(m[1]); r.lastError = ""; }
-        else r.lastError = msg || "rejected";
+        if (m[2] === true || /^duplicate/i.test(msg)) { r.ok.add(m[1]); r.bad.delete(m[1]); r.lastError = ""; }
+        else { r.bad.add(m[1]); r.lastError = msg || "rejected"; }
         this.onChange();
       } else if (type === "CLOSED" && m[1] === this.subId) {
         r.lastError = String(m[2] || "closed"); clearTimeout(r.eoseTimer); r.eose = true; this.onChange();
@@ -666,13 +704,24 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       this.remember(ev);
       Object.values(this.relays).forEach((r) => { if (r.open && r.eose) this._sendEvent(r, ev); });
     }
+    _required() { return Object.keys(this.latest).filter((d) => !this.optional(d)).map((d) => this.latest[d]); }
     stores(url) {
-      const r = this.relays[url], mine = Object.values(this.latest);
+      const r = this.relays[url], mine = this._required();
       return !!r && mine.length > 0 && mine.every((ev) => r.has.has(ev.id) || r.ok.has(ev.id));
+    }
+    eventStatus(dtag) {              // how one of our events is doing on the servers
+      const ev = this.latest[dtag];
+      if (!ev) return null;
+      const list = this.urls.map((u) => this.relays[u]).filter(Boolean);
+      return {
+        stored: list.filter((r) => r.has.has(ev.id) || r.ok.has(ev.id)).length,
+        refused: list.filter((r) => r.bad.has(ev.id)).length,
+        ready: list.filter((r) => r.open && r.eose).length
+      };
     }
     status() {
       const list = this.urls.map((u) => this.relays[u]).filter(Boolean);
-      const mine = Object.values(this.latest);
+      const mine = this._required();
       const storedOn = (r) => mine.length > 0 && mine.every((ev) => r.has.has(ev.id) || r.ok.has(ev.id));
       return {
         total: this.urls.length,
@@ -894,7 +943,23 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     return true;
   }
 
-  // one encrypted package per half month, plus one for name, birthday, album link and first times
+  // the child's photo: a small JPEG (data URL) chosen on one of the phones; newest change wins, removing counts as a change
+  const PHOTO_MAX = 30000;
+  function cleanPhoto(p) {
+    p = String(p || "");
+    return p.length <= PHOTO_MAX && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(p) ? p : "";
+  }
+  function mergePhoto(p, u) {
+    u = Number(u) || 0;
+    const cur = state.settings.pu || 0;
+    p = cleanPhoto(p);
+    if (u < cur || u <= 0 || (u === cur && p <= (state.settings.photo || ""))) return false;
+    state.settings.photo = p;
+    state.settings.pu = u;
+    return true;
+  }
+
+  // one encrypted package per half month, plus one for name, birthday, album link and first times, plus one for the photo
   function buildChunks() {
     const chunks = {};
     Object.keys(state.entries).sort().forEach((d) => {
@@ -908,6 +973,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     Object.keys(state.milestones).sort().forEach((id) => { const x = msOf(id); if (x.u) m[id] = [x.d, x.u]; });
     chunks.meta = { v: 1, c: "meta", s: [state.settings.name || "", state.settings.born || "", state.settings.su || 0,
       state.settings.album || "", state.settings.au || 0], m };
+    if (state.settings.pu) chunks.photo = { v: 1, c: "photo", p: state.settings.photo || "", u: state.settings.pu };
     return chunks;
   }
 
@@ -949,14 +1015,16 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   async function onRelayEvent(ev) {
     if (!room || !ev || ev.pubkey !== room.pkHex || ev.kind !== 30078 || typeof ev.id !== "string" || seen.has(ev.id)) return;
     const dtag = DX.dTag(ev);
-    const m = /^dx:([A-Za-z0-9_-]{4,40}):(\d{4}-\d{2}[ab]?|meta)$/.exec(dtag);
+    const m = /^dx:([A-Za-z0-9_-]{4,40}):(\d{4}-\d{2}[ab]?|meta|photo)$/.exec(dtag);
     if (!m) return;
     seen.add(ev.id);
     const r0 = room;
     const p = await DX.unseal(r0.key, ev.content, dtag);
     if (!p || room !== r0 || p.v !== 1) return;
     let changed = false;
-    if (m[2] === "meta") {
+    if (m[2] === "photo") {
+      if (typeof p.p === "string" && mergePhoto(p.p, p.u)) changed = true;
+    } else if (m[2] === "meta") {
       if (Array.isArray(p.s) && mergeSettings(p.s[0], p.s[1], p.s[2])) changed = true;
       if (Array.isArray(p.s) && mergeAlbum(p.s[3], p.s[4])) changed = true;
       if (p.m && typeof p.m === "object") Object.keys(p.m).forEach((id) => { const x = p.m[id]; if (Array.isArray(x) && mergeMilestone(id, x[0], x[1])) changed = true; });
@@ -981,6 +1049,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       relays: relayList(),
       filter: { kinds: [30078], authors: [room.pkHex], limit: 500 },
       onEvent: (ev) => { onRelayEvent(ev); },
+      optional: (dtag) => /:photo$/.test(dtag),
       onChange: () => renderSyncStatus()
     });
     Object.values(sync.events).forEach((ev) => { if (ev && ev.pubkey === room.pkHex) pool.remember(ev); });
@@ -1063,6 +1132,22 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       });
       box.innerHTML = "Servers: " + names.join(" · ") + (st ? "<br>Saved online on " + st.stored + " of " + st.total : "");
     }
+    renderPhotoState();
+  }
+
+  function renderPhotoState() {   // is the photo on the servers, so the other phone can get it?
+    const box = document.getElementById("set-photo-state");
+    if (!box) return;
+    let text = "", kind = "";
+    if (state.settings.photo && room && pool) {
+      const s = pool.eventStatus("dx:" + sync.device + ":photo");
+      if (s && s.stored > 0) { text = "✓ The photo is online for the other phone."; kind = "ok"; }
+      else if (s && s.ready > 0 && s.refused >= s.ready) { text = "The servers did not take the photo. It stays on this phone."; kind = "warn"; }
+      else if (s) text = "Sending the photo to the other phone…";
+    }
+    box.textContent = text;
+    box.className = "hint photo-state " + kind;
+    box.hidden = !text;
   }
 
   const inviteLink = () => location.origin + location.pathname + "#join=" + sync.secret;
@@ -1388,6 +1473,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     renderPair();
     renderAlbum();
     renderChild();
+    renderPhoto();
     renderCalendar();
     renderExercises();
     renderTags();
@@ -1444,6 +1530,14 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       state.tab = "guide"; renderTabs();
       el("set-album").scrollIntoView({ block: "center" });
       setTimeout(() => el("set-album").focus(), 300);
+      return;
+    }
+    if (act && act.indexOf("photo-") === 0) {
+      if (act === "photo-use") cropUse();
+      else if (act === "photo-cancel") { cropClose(); photoMsg(""); }
+      else if (act === "photo-remove") { el("photo-confirm").hidden = false; photoMsg("Remove the photo from both phones?"); }
+      else if (act === "photo-remove-no") { el("photo-confirm").hidden = true; photoMsg(""); }
+      else if (act === "photo-remove-yes") { el("photo-confirm").hidden = true; photoRemove(); }
       return;
     }
     if (act && act.indexOf("pair-") === 0) {
@@ -1575,7 +1669,8 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   }
   function backupJson() {
     return JSON.stringify({ app: "daily-exercises", version: 1, saved: new Date().toISOString(),
-      settings: { name: state.settings.name, born: state.settings.born, su: state.settings.su || 0, album: state.settings.album || "", au: state.settings.au || 0 },
+      settings: { name: state.settings.name, born: state.settings.born, su: state.settings.su || 0, album: state.settings.album || "", au: state.settings.au || 0,
+        photo: state.settings.photo || "", pu: state.settings.pu || 0 },
       entries: state.entries, milestones: state.milestones }, null, 1);
   }
   function saveBackup() {
@@ -1606,6 +1701,7 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
         Object.keys(mo).forEach((id) => { const x = mo[id]; if (typeof x === "string") mergeMilestone(id, x, 1); else if (x && typeof x === "object") mergeMilestone(id, x.d, x.u); });
         if (o.settings && o.settings.name) mergeSettings(o.settings.name, o.settings.born || "", o.settings.su || 1);
         if (o.settings && o.settings.album) mergeAlbum(o.settings.album, o.settings.au || 1);
+        if (o.settings && o.settings.pu) mergePhoto(o.settings.photo || "", o.settings.pu);
         saveLocal(); syncChanged(); fillSettings(); render();
         el("backup-msg").textContent = "Backup loaded: " + n + " days.";
       } catch (e) { el("backup-msg").textContent = "This file is not a backup from this app."; }
@@ -1648,6 +1744,169 @@ ul.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       if (n && !state.settings.name) { state.settings.name = n.slice(0, 40); if (/^\d{4}-\d{2}-\d{2}$/.test(b)) state.settings.born = b; state.settings.su = bump(state.settings.su); saveLocal(); }
     } catch (e) { /* ignore */ }
   }
+
+  // ---------- the child's photo: chosen on this phone, cut to a circle, shared encrypted like the entries ----------
+  const PHOTO_TARGET = 18000;            // characters of the stored photo; keeps the encrypted package small for the servers
+  const crop = { img: null, url: "", w: 0, h: 0, zoom: 1, max: 4, cx: 0.5, cy: 0.5, pts: new Map(), start: null };
+  function photoMsg(text) { const m = el("set-photo-msg"); m.textContent = text || ""; m.hidden = !text; }
+  function renderPhoto() {
+    const ph = state.settings.photo || "";
+    [el("child-photo"), el("set-photo-img")].forEach((img) => {
+      if (ph) { if (img.getAttribute("src") !== ph) img.setAttribute("src", ph); img.hidden = false; }
+      else { img.hidden = true; img.removeAttribute("src"); }
+    });
+    el("set-photo-empty").hidden = !!ph;
+    el("set-photo-remove").hidden = !ph;
+    if (!ph) el("photo-confirm").hidden = true;
+    el("set-photo-label").textContent = ph ? "Change photo" : "Choose a photo";
+    el("child-line").classList.toggle("has-photo", !!ph);
+    renderPhotoState();
+  }
+  function cropLayout() {
+    if (!crop.img) return;
+    const box = el("crop-box"), B = box.clientWidth || 300;
+    box.style.height = B + "px";
+    crop.zoom = Math.min(Math.max(crop.zoom, 1), crop.max);
+    const side = Math.min(crop.w, crop.h) / crop.zoom, half = side / 2, k = B / side;
+    const x = Math.min(Math.max(crop.cx * crop.w, half), crop.w - half);
+    const y = Math.min(Math.max(crop.cy * crop.h, half), crop.h - half);
+    crop.cx = x / crop.w; crop.cy = y / crop.h;
+    const img = el("crop-img");
+    img.style.width = crop.w * k + "px";
+    img.style.height = crop.h * k + "px";
+    img.style.transform = "translate(" + (B / 2 - x * k) + "px," + (B / 2 - y * k) + "px)";
+  }
+  function cropClose() {
+    const img = el("crop-img");
+    img.onload = img.onerror = null;
+    img.removeAttribute("src");
+    if (crop.url) URL.revokeObjectURL(crop.url);
+    crop.img = null; crop.url = ""; crop.pts.clear(); crop.start = null;
+    el("cropper").hidden = true;
+  }
+  function cropFail() { cropClose(); photoMsg("This photo could not be opened. Please choose another one."); }
+  function cropOpen(file) {
+    photoMsg("");
+    el("photo-confirm").hidden = true;
+    if (!file) return;
+    if (file.type && !/^image\//.test(file.type)) { photoMsg("Please choose a photo."); return; }
+    cropClose();
+    let url = "";
+    try { url = URL.createObjectURL(file); } catch (e) { cropFail(); return; }
+    const img = el("crop-img");
+    crop.url = url;
+    img.onload = () => {
+      if (crop.url !== url) return;
+      if (!img.naturalWidth || !img.naturalHeight) { cropFail(); return; }
+      crop.img = img; crop.w = img.naturalWidth; crop.h = img.naturalHeight;
+      crop.max = Math.max(1, Math.min(4, Math.min(crop.w, crop.h) / 120));
+      crop.zoom = 1; crop.cx = 0.5; crop.cy = crop.h > crop.w * 1.1 ? 0.4 : 0.5;   // portrait: faces sit high
+      const z = el("crop-zoom"); z.max = String(crop.max); z.value = "1"; z.disabled = crop.max <= 1;
+      el("cropper").hidden = false;
+      cropLayout();
+      el("cropper").scrollIntoView({ block: "center" });
+    };
+    img.onerror = () => { if (crop.url === url) cropFail(); };
+    img.src = url;
+  }
+  function cropPoint() {
+    const p = Array.from(crop.pts.values());
+    return { x: p.reduce((a, q) => a + q.x, 0) / p.length, y: p.reduce((a, q) => a + q.y, 0) / p.length,
+      dist: p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0 };
+  }
+  function cropBegin() { crop.start = crop.pts.size ? Object.assign(cropPoint(), { cx: crop.cx, cy: crop.cy, zoom: crop.zoom }) : null; }
+  function cropEnd(e) { if (crop.pts.delete(e.pointerId)) cropBegin(); }
+  const cropBox = el("crop-box");
+  cropBox.addEventListener("pointerdown", (e) => {
+    if (!crop.img) return;
+    e.preventDefault();
+    try { cropBox.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
+    crop.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    cropBegin();
+  });
+  cropBox.addEventListener("pointermove", (e) => {
+    if (!crop.img || !crop.start || !crop.pts.has(e.pointerId)) return;
+    e.preventDefault();
+    crop.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const now = cropPoint(), s0 = crop.start;
+    if (crop.pts.size > 1 && s0.dist > 0 && now.dist > 0) {           // two fingers: zoom
+      crop.zoom = Math.min(Math.max(s0.zoom * now.dist / s0.dist, 1), crop.max);
+      el("crop-zoom").value = String(crop.zoom);
+    }
+    const k = (cropBox.clientWidth || 300) / (Math.min(crop.w, crop.h) / crop.zoom);
+    crop.cx = s0.cx - (now.x - s0.x) / k / crop.w;
+    crop.cy = s0.cy - (now.y - s0.y) / k / crop.h;
+    cropLayout();
+  });
+  cropBox.addEventListener("pointerup", cropEnd);
+  cropBox.addEventListener("pointercancel", cropEnd);
+  cropBox.addEventListener("lostpointercapture", cropEnd);
+  cropBox.addEventListener("wheel", (e) => {
+    if (!crop.img) return;
+    e.preventDefault();
+    crop.zoom = Math.min(Math.max(crop.zoom * Math.exp(-e.deltaY / 400), 1), crop.max);
+    el("crop-zoom").value = String(crop.zoom);
+    cropLayout();
+  }, { passive: false });
+  el("crop-zoom").addEventListener("input", () => { crop.zoom = Number(el("crop-zoom").value) || 1; cropLayout(); });
+  window.addEventListener("resize", () => { if (crop.img) cropLayout(); });
+
+  function shrinkSquare(src, sx, sy, side, size) {
+    let from = src, x = sx, y = sy, s = side;
+    while (s > size * 2) {               // halve step by step: sharper than one big jump
+      const n = Math.max(size, Math.round(s / 2));
+      const c = document.createElement("canvas"); c.width = c.height = n;
+      const g = c.getContext("2d"); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+      g.drawImage(from, x, y, s, s, 0, 0, n, n);
+      if (from !== src) from.width = from.height = 0;   // free memory right away (iPhones limit canvas memory)
+      from = c; x = 0; y = 0; s = n;
+    }
+    const out = document.createElement("canvas"); out.width = out.height = size;
+    const g = out.getContext("2d"); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+    g.fillStyle = "#ffffff"; g.fillRect(0, 0, size, size);
+    g.drawImage(from, x, y, s, s, 0, 0, size, size);
+    if (from !== src) from.width = from.height = 0;
+    return out;
+  }
+  function cropResult() {
+    const side = Math.min(crop.w, crop.h) / crop.zoom;
+    const sx = Math.max(0, crop.cx * crop.w - side / 2), sy = Math.max(0, crop.cy * crop.h - side / 2);
+    let best = "";
+    for (const size of [192, 160, 128]) {
+      const c = shrinkSquare(crop.img, sx, sy, side, size);
+      let done = "";
+      for (const q of [0.82, 0.72, 0.62, 0.52]) {
+        const u = c.toDataURL("image/jpeg", q);
+        if (u.indexOf("data:image/jpeg;base64,") !== 0) break;
+        if (!best || u.length < best.length) best = u;
+        if (u.length <= PHOTO_TARGET) { done = u; break; }
+      }
+      c.width = c.height = 0;
+      if (done) return done;
+      if (!best) return "";
+    }
+    return cleanPhoto(best);
+  }
+  function cropUse() {
+    if (!crop.img) return;
+    let url = "";
+    try { url = cleanPhoto(cropResult()); } catch (e) { url = ""; }
+    if (!url) { photoMsg("This photo could not be used. Please choose another one."); return; }
+    state.settings.photo = url;
+    state.settings.pu = bump(state.settings.pu);
+    cropClose(); saveLocal(); syncChanged(); render();
+    photoMsg(room ? "Saved. The photo goes to the other phone by itself." : "Saved on this phone.");
+    el("set-photo-row").scrollIntoView({ block: "center" });
+  }
+  function photoRemove() {
+    state.settings.photo = "";
+    state.settings.pu = bump(state.settings.pu);
+    saveLocal(); syncChanged(); render();
+    photoMsg("Photo removed.");
+  }
+  document.addEventListener("change", (ev) => {
+    if (ev.target.id === "set-photo" && ev.target.files && ev.target.files[0]) { cropOpen(ev.target.files[0]); ev.target.value = ""; }
+  });
 
   // ---------- updates: load the new version when one is online ----------
   const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || "";

@@ -1,5 +1,5 @@
 // Offline support: the app keeps working without internet.
-const CACHE = "daily-exercises-v4";
+const CACHE = "daily-exercises-v5";
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
